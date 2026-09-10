@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>收款明细 · 电商子业务认领</title>
+  <style>
+    :root {
+      --primary: #1677ff;
+      --primary-hover: #4096ff;
+      --text: rgba(0, 0, 0, 0.88);
+      --text-2: rgba(0, 0, 0, 0.65);
+      --text-3: rgba(0, 0, 0, 0.45);
+      --border: #f0f0f0;
+      --border-2: #d9d9d9;
+      --bg: #f5f5f5;
+      --header: #fafafa;
+      --green: #52c41a;
+      --warn: #faad14;
+      --danger: #ff4d4f;
+      --radius: 6px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      font-size: 14px;
+    }
+    a { color: var(--primary); text-decoration: none; cursor: pointer; }
+    a:hover { color: var(--primary-hover); }
+    button { font-family: inherit; }
+
+    .proto-bar {
+      height: 36px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 16px;
+      background: #111;
+      color: #fff;
+      font-size: 12px;
+    }
+    .proto-bar span { color: rgba(255,255,255,.55); }
+    .proto-bar button {
+      height: 24px; padding: 0 10px; border: 0; border-radius: 4px;
+      background: transparent; color: rgba(255,255,255,.75); cursor: pointer;
+    }
+    .proto-bar button.active { background: #fff; color: #111; }
+
+    .app { background: #fff; min-height: calc(100% - 36px); }
+
+    .crumb {
+      height: 40px; display: flex; align-items: center; gap: 8px;
+      padding: 0 16px; color: var(--text-2); font-size: 13px; border-bottom: 1px solid var(--border);
+    }
+    .crumb b { color: var(--text); font-weight: 500; }
+
+    .page-tabs {
+      display: flex; align-items: center; gap: 4px; padding: 8px 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .page-tab {
+      padding: 8px 12px; border: 1px solid transparent; border-bottom: none;
+      border-radius: 6px 6px 0 0; color: var(--text-2); cursor: pointer; background: transparent;
+    }
+    .page-tab.active {
+      color: var(--primary); background: #fff; border-color: var(--border);
+      margin-bottom: -1px; border-bottom: 1px solid #fff;
+    }
+
+    .page { padding: 16px; }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr)) auto auto auto;
+      gap: 12px 16px; align-items: end; margin-bottom: 8px;
+    }
+    .filters.expanded { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .field label {
+      display: block; margin-bottom: 6px; color: var(--text); font-size: 14px;
+    }
+    .ctrl {
+      width: 100%; height: 32px; padding: 0 11px;
+      border: 1px solid var(--border-2); border-radius: var(--radius);
+      background: #fff; color: var(--text); outline: none;
+    }
+    .ctrl:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(22,119,255,.1); }
+    .ctrl.placeholder, .ctrl option[disabled] { color: var(--text-3); }
+    .btn {
+      height: 32px; padding: 0 15px; border-radius: var(--radius);
+      border: 1px solid var(--border-2); background: #fff; cursor: pointer; color: var(--text);
+    }
+    .btn:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); color: #fff; }
+    .btn-danger { background: #fff; border-color: var(--danger); color: var(--danger); }
+    .btn-danger:hover { background: #fff2f0; }
+    .btn-link { border: 0; background: none; color: var(--primary); padding: 0 8px; height: auto; cursor: pointer; }
+    .btn-link.danger { color: var(--danger); }
+    .btn-link.slot-4 {
+      display: inline-block;
+      box-sizing: content-box;
+      min-width: 4em;
+      text-align: center;
+    }
+    .old { color: var(--text-3); text-decoration: line-through; margin-right: 8px; }
+    .btn-link + .btn-link { margin-left: 4px; }
+    .btn-link.muted { color: var(--text-2); }
+    .actions-right { display: flex; gap: 8px; justify-content: flex-end; }
+
+    .channel-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 12px 0 8px; border-bottom: 1px solid var(--border);
+    }
+    .channels { display: flex; gap: 2px; }
+    .ch {
+      padding: 10px 14px; color: var(--text); background: none; border: 0;
+      border-bottom: 2px solid transparent; cursor: pointer;
+    }
+    .ch.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; min-width: 1280px; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th { background: var(--header); font-weight: 500; color: var(--text); }
+    td.amount { color: var(--green); font-variant-numeric: tabular-nums; }
+    .dash { color: var(--text-3); }
+    .tag {
+      display: inline-block; padding: 0 7px; height: 22px; line-height: 20px;
+      border-radius: 4px; font-size: 12px; border: 1px solid transparent;
+    }
+    .tag-gray { background: #fafafa; border-color: #d9d9d9; color: var(--text-2); }
+    .tag-blue { background: #e6f4ff; border-color: #91caff; color: #1677ff; }
+    .tag-green { background: #f6ffed; border-color: #b7eb8f; color: #389e0d; }
+
+    .pager {
+      display: flex; justify-content: flex-end; align-items: center; gap: 12px;
+      padding: 12px 0 0; color: var(--text-2); font-size: 13px;
+    }
+
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: none; align-items: flex-start; justify-content: center;
+      padding-top: 8vh; z-index: 20;
+    }
+    .overlay.show { display: flex; }
+    .modal {
+      width: 640px; background: #fff; border-radius: 8px; overflow: hidden;
+    }
+    .modal.wide { width: 720px; }
+    .modal-hd {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 24px; font-size: 16px; font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-bd { padding: 20px 24px 8px; }
+    .modal-ft {
+      display: flex; justify-content: flex-end; gap: 8px;
+      padding: 12px 24px 16px; border-top: 1px solid var(--border);
+    }
+    .close { border: 0; background: none; font-size: 18px; cursor: pointer; color: var(--text-3); }
+    .hint {
+      background: #e6f4ff; border: 1px solid #91caff; color: #0958d9;
+      padding: 8px 12px; border-radius: 6px; margin-bottom: 16px; font-size: 13px;
+    }
+    .hint.warn {
+      background: #fffbe6; border-color: #ffe58f; color: #ad6800;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .form-row.one { grid-template-columns: 1fr; }
+    .req::before { content: "* "; color: var(--danger); }
+    .upload {
+      border: 1px dashed var(--border-2); border-radius: 8px; padding: 36px 12px;
+      text-align: center; color: var(--text-3); background: #fafafa; cursor: pointer;
+    }
+    .upload:hover { border-color: var(--primary); color: var(--primary); }
+    .file-list { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+    .file-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 10px; background: var(--header); border-radius: 4px; font-size: 13px;
+    }
+    .file-item button { border: 0; background: none; color: var(--text-3); cursor: pointer; }
+    .preview {
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px;
+    }
+    .preview-hd {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 12px; background: var(--header); font-size: 13px;
+    }
+    .preview-hd b { font-weight: 500; }
+    .kv { display: grid; grid-template-columns: 88px 1fr; gap: 8px 12px; padding: 12px; font-size: 13px; }
+    .kv .k { color: var(--text-3); }
+    .radio { display: flex; gap: 20px; padding-top: 6px; }
+    .radio label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+    .drawer-overlay { justify-content: flex-end; padding-top: 0; }
+    .drawer {
+      width: 420px; height: 100%; background: #fff; display: flex; flex-direction: column;
+    }
+    .drawer .modal-bd { flex: 1; overflow: auto; }
+    .section-title { margin: 0 0 12px; font-size: 14px; font-weight: 600; }
+
+    .page-card {
+      background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 16px;
+    }
+    .page-card h2 { margin: 0 0 4px; font-size: 16px; }
+    .sub { color: var(--text-2); margin-bottom: 16px; font-size: 13px; }
+
+    .hidden { display: none !important; }
+
+    .export-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px; font-size: 13px; color: var(--text-2);
+    }
+    .export-fields {
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px 16px;
+    }
+    .export-fields label {
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+      height: 32px; margin: 0;
+    }
+    .export-fields input { margin: 0; }
+    .badge-new {
+      display: inline-block; margin-left: 4px; padding: 0 6px; height: 18px; line-height: 18px;
+      font-size: 11px; color: #1677ff; background: #e6f4ff; border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="proto-bar">
+    <span>后台界面演示</span>
+    <button class="active" data-screen="receipt" onclick="showScreen('receipt')">收款明细</button>
+    <button data-screen="master" onclick="showScreen('master')">电商子业务档案</button>
+    <button data-screen="caliber" onclick="showScreen('caliber')">字段口径草案</button>
+    <span style="margin-left:auto">口径待定：当前按电商子业务主数据带出，确认后写入流水</span>
+  </div>
+
+  <div class="app" id="screen-receipt">
+    <div class="crumb">Fund / 业务入账 / <b>收款明细</b></div>
+    <div class="page-tabs">
+      <button class="page-tab">工作台</button>
+      <button class="page-tab active">收款明细</button>
+    </div>
+    <div class="page">
+      <div class="filters" id="filters">
+        <div class="field">
+          <label>账户别名</label>
+          <select class="ctrl"><option>选择账户别名</option></select>
+        </div>
+        <div class="field">
+          <label>主体名称</label>
+          <select class="ctrl"><option>选择主体名称</option></select>
+        </div>
+        <div class="field">
+          <label>交易时间</label>
+          <input class="ctrl" value="2026-08-11 → 2026-09-11" />
+        </div>
+        <div class="field">
+          <label>交易ID</label>
+          <input class="ctrl" placeholder="输入交易ID" />
+        </div>
+        <div class="field">
+          <label>认领类型</label>
+          <select class="ctrl" id="filter-type">
+            <option value="all">全部</option>
+            <option value="none">未认领</option>
+            <option value="one">一键认领</option>
+            <option value="ecom">电商认领</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="renderTable()">搜索</button>
+        <button class="btn" onclick="resetFilters()">重置</button>
+        <button class="btn" onclick="toggleMore()">展开</button>
+      </div>
+      <div class="filters expanded hidden" id="more-filters">
+        <div class="field">
+          <label>认领业务</label>
+          <select class="ctrl" id="filter-biz">
+            <option value="">全部</option>
+            <option>fulfill</option>
+            <option>ad</option>
+            <option>chargeback</option>
+            <option>独立站一组</option>
+            <option>独立站二组</option>
+            <option>独立站三组</option>
+            <option>独立站四组</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>业务经理</label>
+          <input class="ctrl" id="filter-manager" placeholder="业务经理" />
+        </div>
+        <div class="field">
+          <label>业务员</label>
+          <input class="ctrl" id="filter-sales" placeholder="业务员" />
+        </div>
+      </div>
+
+      <div class="channel-bar">
+        <div class="channels">
+          <button class="ch active" onclick="setChannel('Wise', this)">Wise</button>
+          <button class="ch" onclick="setChannel('Airwallex', this)">Airwallex</button>
+          <button class="ch" onclick="setChannel('Payoneer', this)">Payoneer</button>
+          <button class="ch" onclick="setChannel('Worldfirst', this)">Worldfirst</button>
+          <button class="ch" onclick="setChannel('PingPong', this)">PingPong</button>
+          <button class="ch" onclick="setChannel('Others', this)">Others</button>
+          <button class="ch" onclick="setChannel('HSBC USD (Swift)', this)">HSBC USD (Swift)</button>
+        </div>
+        <div class="actions-right">
+          <button class="btn">手动上传Excel</button>
+          <button class="btn">下载Excel模版</button>
+          <button class="btn btn-primary" onclick="openExport()">导出数据</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>支付平台</th>
+              <th>账户别名</th>
+              <th>主体名称</th>
+              <th>交易ID</th>
+              <th>交易时间（UTC+8）</th>
+              <th>币种</th>
+              <th>金额</th>
+              <th>认领类型</th>
+              <th>认领业务</th>
+              <th>业务经理</th>
+              <th>业务员</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="pager"><span id="pager-text">共 2 条记录</span> 20条/页</div>
+    </div>
+  </div>
+
+  <div class="app hidden" id="screen-master">
+    <div class="crumb">Fund / 业务入账 / <b>电商子业务档案</b></div>
+    <div class="page">
+      <div class="page-card">
+        <h2>电商子业务档案</h2>
+        <div class="sub">认领时「业务员、业务经理、认领业务」默认从这里带出。口径确认前，先按这个结构建主数据，避免把人员写死在流水认领里。</div>
+        <div class="table-wrap">
+          <table style="min-width:0">
+            <thead>
+              <tr>
+                <th>电商子业务</th>
+                <th>认领业务（写入流水）</th>
+                <th>业务员</th>
+                <th>业务经理</th>
+              </tr>
+            </thead>
+            <tbody id="master-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="app hidden" id="screen-caliber">
+    <div class="crumb">Fund / 业务入账 / <b>字段口径草案</b></div>
+    <div class="page">
+      <div class="page-card">
+        <h2>电商子业务认领完成后的三个字段</h2>
+        <div class="sub">财务已确认要更新「业务员、业务经理、认领业务」，赋值口径待定。界面按可切换口径来做：弹窗里预览将写入的值，确认后落库。下面是建议财务拍板的三套口径。</div>
+        <div class="table-wrap" style="margin-top:12px">
+          <table style="min-width:0">
+            <thead>
+              <tr>
+                <th>字段</th>
+                <th>方案 A（推荐先上）</th>
+                <th>方案 B</th>
+                <th>方案 C</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>认领业务</td>
+                <td>等于所选电商子业务名称，如独立站二组</td>
+                <td>等于所属业务线，如独立站</td>
+                <td>固定值「电商」，或财务配置的业务编码</td>
+              </tr>
+              <tr>
+                <td>业务员</td>
+                <td>电商子业务档案上的业务员</td>
+                <td>同 A</td>
+                <td>当前操作人</td>
+              </tr>
+              <tr>
+                <td>业务经理</td>
+                <td>电商子业务档案上的业务经理</td>
+                <td>同 A</td>
+                <td>操作人上级，从组织架构取</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="sub" style="margin-top:16px">演示弹窗当前按方案 A 运行。一键认领不写这三列，避免和客户入账口径搅在一起。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="modal-ecom">
+    <div class="modal wide">
+      <div class="modal-hd"><span id="ecom-title">电商子业务认领</span> <button class="close" onclick="closeAll()">×</button></div>
+      <div class="modal-bd">
+        <div class="hint" id="ecom-hint">仅归属到电商子业务，不会充值到客户资金账户。一笔流水只能认领一次，已一键认领的不能再做电商认领。</div>
+        <div class="form-row one">
+          <div class="field">
+            <label class="req">电商子业务</label>
+            <select class="ctrl" id="ecom-group">
+              <option value="">请选择电商子业务</option>
+              <option value="g1">独立站一组</option>
+              <option value="g2">独立站二组</option>
+              <option value="g3">独立站三组</option>
+              <option value="g4">独立站四组</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:16px">
+          <label class="req" id="ecom-upload-label">上传文件（支持图片/pdf格式文件，最多10个，单个文件20M内）</label>
+          <div class="upload" id="ecom-upload">
+            点击或拖拽或粘贴文件到此区域上传<br />支持图片 / pdf 格式文件
+          </div>
+          <input type="file" id="ecom-file-input" hidden multiple accept="image/*,application/pdf,.pdf" />
+          <div class="file-list" id="ecom-file-list"></div>
+        </div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn" onclick="closeAll()">取消</button>
+        <button class="btn btn-primary" id="ecom-submit" onclick="confirmEcom()">确认认领</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="modal-one">
+    <div class="modal">
+      <div class="modal-hd">一键认领 <button class="close" onclick="closeAll()">×</button></div>
+      <div class="modal-bd">
+        <div class="form-row">
+          <div class="field">
+            <label class="req">子业务</label>
+            <div class="radio">
+              <label><input type="radio" name="sub" value="ad" /> 广告</label>
+              <label><input type="radio" name="sub" value="fulfill" checked /> 履约</label>
+              <label><input type="radio" name="sub" value="chargeback" /> 拒付</label>
+            </div>
+          </div>
+          <div class="field">
+            <label class="req">客户</label>
+            <select class="ctrl" id="one-customer">
+              <option value="">请选择客户</option>
+              <option value="c1">履约: Aboubacar Sankhon</option>
+              <option value="c2">履约: Lucas D</option>
+              <option value="c3">履约: agency.setup2</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:16px">
+          <label class="req">上传文件（支持图片/pdf格式文件，最多10个，单个文件20M内）</label>
+          <div class="upload">点击或拖拽或粘贴文件到此区域上传<br />支持图片/pdf格式文件</div>
+        </div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn" onclick="closeAll()">取消</button>
+        <button class="btn btn-primary" onclick="confirmOne()">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="modal-revoke">
+    <div class="modal">
+      <div class="modal-hd">撤销电商子业务认领 <button class="close" onclick="closeAll()">×</button></div>
+      <div class="modal-bd">
+        <div class="hint warn">撤销后流水回到未认领，认领业务、业务员、业务经理将被清空。本次认领未入客户账户，撤销不涉及资金冲正。撤销后可再次一键认领或电商认领。</div>
+        <div class="kv" style="padding:0 0 16px">
+          <div class="k">当前认领业务</div><div id="rv-biz">-</div>
+          <div class="k">业务经理</div><div id="rv-manager">-</div>
+          <div class="k">业务员</div><div id="rv-sales">-</div>
+        </div>
+        <div class="field">
+          <label class="req">撤销原因</label>
+          <input class="ctrl" id="rv-reason" placeholder="例如：认领组选错 / 应改为一键认领入账" />
+        </div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn" onclick="closeAll()">取消</button>
+        <button class="btn btn-danger" onclick="confirmRevoke()">确认撤销</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="modal-export">
+    <div class="modal wide">
+      <div class="modal-hd">导出数据 <button class="close" onclick="closeAll()">×</button></div>
+      <div class="modal-bd">
+        <div class="export-toolbar">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
+            <input type="checkbox" id="export-all" checked onchange="toggleExportAll(this.checked)" /> 全选
+          </label>
+          <span>导出当前筛选结果，字段与列表对齐</span>
+        </div>
+        <div class="export-fields" id="export-fields"></div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn" onclick="closeAll()">取消</button>
+        <button class="btn btn-primary" onclick="confirmExport()">确认导出</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay drawer-overlay" id="drawer-view">
+    <div class="drawer">
+      <div class="modal-hd">查看认领 <button class="close" onclick="closeAll()">×</button></div>
+      <div class="modal-bd" id="view-body"></div>
+    </div>
+  </div>
+
+  <script>
+    const CUSTOMERS = {
+      c1: { label: "履约: Aboubacar Sankhon", biz: "fulfill", sales: "周启明", manager: "履约一组" },
+      c2: { label: "履约: Lucas D", biz: "fulfill", sales: "林晓荷", manager: "履约二组" },
+      c3: { label: "履约: agency.setup2", biz: "fulfill", sales: "周启明", manager: "履约一组" },
+    };
+    const GROUPS = {
+      g1: { name: "独立站一组", biz: "独立站一组", sales: "陈思远", manager: "刘洋" },
+      g2: { name: "独立站二组", biz: "独立站二组", sales: "王敏", manager: "赵琦" },
+      g3: { name: "独立站三组", biz: "独立站三组", sales: "郑浩", manager: "周宁" },
+      g4: { name: "独立站四组", biz: "独立站四组", sales: "孙悦", manager: "吴岚" },
+    };
+
+    const rows = [
+      { id: "23122143432", platform: "Wise", alias: "HQY-Wise-USD-01", entity: "环球易（香港）", amount: "99.00", ccy: "USD", time: "2026-09-06 23:59:00", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "23122143333", platform: "Wise", alias: "HQY-Wise-USD-01", entity: "环球易（香港）", amount: "1280.50", ccy: "USD", time: "2026-09-06 21:12:18", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "23122144001", platform: "Wise", alias: "HQY-Wise-USD-02", entity: "环球易（香港）", amount: "350.00", ccy: "USD", time: "2026-09-05 18:40:02", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "23122144018", platform: "Wise", alias: "HQY-Wise-EUR-01", entity: "环球易（香港）", amount: "760.00", ccy: "EUR", time: "2026-09-05 11:03:44", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "23122145102", platform: "Wise", alias: "HQY-Wise-USD-01", entity: "环球易（香港）", amount: "4200.00", ccy: "USD", time: "2026-09-04 09:22:10", claimType: "ecom", groupKey: "g2", biz: "独立站二组", sales: "王敏", manager: "赵琦", files: ["独立站打款截图.png"], history: [{ t: "2026-09-04 10:01", action: "认领", detail: "独立站二组" }] },
+      { id: "23122145188", platform: "Wise", alias: "HQY-Wise-USD-02", entity: "环球易（香港）", amount: "1888.00", ccy: "USD", time: "2026-09-03 16:08:55", claimType: "ecom", groupKey: "g1", biz: "独立站一组", sales: "陈思远", manager: "刘洋", files: ["wise-receipt.pdf"], history: [{ t: "2026-09-03 17:20", action: "认领", detail: "独立站一组" }] },
+      { id: "23122145220", platform: "Wise", alias: "HQY-Wise-USD-01", entity: "环球易（香港）", amount: "560.20", ccy: "USD", time: "2026-09-03 08:15:00", claimType: "ecom", groupKey: "g4", biz: "独立站四组", sales: "孙悦", manager: "吴岚", files: ["screenshot-0903.jpg"], history: [{ t: "2026-09-03 09:40", action: "认领", detail: "独立站三组" }, { t: "2026-09-03 11:12", action: "修改", detail: "独立站三组 → 独立站四组" }] },
+      { id: "23122146011", platform: "Wise", alias: "HQY-Wise-USD-01", entity: "环球易（香港）", amount: "2100.00", ccy: "USD", time: "2026-09-02 14:33:27", claimType: "one", groupKey: "", biz: "fulfill", sales: "周启明", manager: "履约一组", files: ["履约-客户A.pdf"], history: [{ t: "2026-09-02 15:02", action: "一键认领", detail: "履约 · Aboubacar Sankhon" }] },
+      { id: "23122146090", platform: "Wise", alias: "HQY-Wise-EUR-01", entity: "环球易（香港）", amount: "95.00", ccy: "EUR", time: "2026-09-01 20:01:09", claimType: "one", groupKey: "", biz: "fulfill", sales: "林晓荷", manager: "履约二组", files: ["履约-凭证.png"], history: [{ t: "2026-09-01 20:18", action: "一键认领", detail: "履约 · Lucas D" }] },
+      { id: "23122147005", platform: "Wise", alias: "HQY-Wise-USD-02", entity: "环球易（香港）", amount: "9999.99", ccy: "USD", time: "2026-08-30 10:00:00", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "AW88219001", platform: "Airwallex", alias: "HQY-AWX-USD", entity: "环球易（新加坡）", amount: "1500.00", ccy: "USD", time: "2026-09-06 19:20:11", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "AW88219078", platform: "Airwallex", alias: "HQY-AWX-USD", entity: "环球易（新加坡）", amount: "320.40", ccy: "USD", time: "2026-09-05 13:44:02", claimType: "ecom", groupKey: "g2", biz: "独立站二组", sales: "王敏", manager: "赵琦", files: ["awx-in.png"], history: [{ t: "2026-09-05 14:01", action: "认领", detail: "独立站二组" }] },
+      { id: "AW88219120", platform: "Airwallex", alias: "HQY-AWX-GBP", entity: "环球易（新加坡）", amount: "640.00", ccy: "GBP", time: "2026-09-04 07:55:30", claimType: "one", groupKey: "", biz: "fulfill", sales: "周启明", manager: "履约一组", files: ["履约-invoice.pdf"], history: [{ t: "2026-09-04 08:12", action: "一键认领", detail: "履约 · agency.setup2" }] },
+      { id: "PN-20260906-01", platform: "Payoneer", alias: "HQY-PO-USD", entity: "环球易（香港）", amount: "88.00", ccy: "USD", time: "2026-09-06 12:08:00", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "PN-20260904-17", platform: "Payoneer", alias: "HQY-PO-USD", entity: "环球易（香港）", amount: "2450.00", ccy: "USD", time: "2026-09-04 22:19:41", claimType: "ecom", groupKey: "g1", biz: "独立站一组", sales: "陈思远", manager: "刘洋", files: ["payoneer.jpg", "备注说明.pdf"], history: [{ t: "2026-09-05 09:00", action: "认领", detail: "独立站一组" }] },
+      { id: "PN-20260902-03", platform: "Payoneer", alias: "HQY-PO-USD", entity: "环球易（香港）", amount: "670.00", ccy: "USD", time: "2026-09-02 03:12:08", claimType: "one", groupKey: "", biz: "chargeback", sales: "韩亦辰", manager: "风控一组", files: ["拒付-材料.pdf"], history: [{ t: "2026-09-02 10:22", action: "一键认领", detail: "拒付 · 客户 C" }] },
+      { id: "WF778120", platform: "Worldfirst", alias: "HQY-WF-USD", entity: "环球易（香港）", amount: "5000.00", ccy: "USD", time: "2026-09-06 08:00:00", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "WF778188", platform: "Worldfirst", alias: "HQY-WF-USD", entity: "环球易（香港）", amount: "1320.15", ccy: "USD", time: "2026-09-03 19:27:33", claimType: "ecom", groupKey: "g4", biz: "独立站四组", sales: "孙悦", manager: "吴岚", files: ["wf-credit.png"], history: [{ t: "2026-09-03 20:05", action: "认领", detail: "独立站四组" }] },
+      { id: "PP-0911-002", platform: "PingPong", alias: "HQY-PP-USD", entity: "环球易（深圳）", amount: "210.00", ccy: "USD", time: "2026-09-06 15:45:19", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "PP-0908-019", platform: "PingPong", alias: "HQY-PP-USD", entity: "环球易（深圳）", amount: "8800.00", ccy: "USD", time: "2026-09-08 11:11:11", claimType: "ecom", groupKey: "g2", biz: "独立站二组", sales: "王敏", manager: "赵琦", files: ["pingpong-入账.pdf"], history: [{ t: "2026-09-08 11:40", action: "认领", detail: "独立站二组" }] },
+      { id: "OT-20260901", platform: "Others", alias: "HQY-Bank-CNH", entity: "环球易（深圳）", amount: "36000.00", ccy: "CNH", time: "2026-09-01 09:30:00", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "HSBC-SWIFT-0902", platform: "HSBC USD (Swift)", alias: "HQY-HSBC-USD", entity: "环球易（香港）", amount: "12500.00", ccy: "USD", time: "2026-09-02 16:48:00", claimType: "one", groupKey: "", biz: "fulfill", sales: "周启明", manager: "履约一组", files: ["swift-mt103.pdf"], history: [{ t: "2026-09-02 17:10", action: "一键认领", detail: "履约 · 客户 D" }] },
+      { id: "HSBC-SWIFT-0906", platform: "HSBC USD (Swift)", alias: "HQY-HSBC-USD", entity: "环球易（香港）", amount: "430.00", ccy: "USD", time: "2026-09-06 04:02:51", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+    ];
+
+    let currentChannel = "Wise";
+
+    let claimingId = null;
+    let ecomMode = "claim";
+    let ecomFiles = [];
+
+    function nowText() {
+      const d = new Date();
+      const p = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    }
+
+    function addHistory(row, action, detail) {
+      row.history.push({ t: nowText(), action, detail });
+    }
+
+    function showScreen(name) {
+      document.querySelectorAll(".proto-bar button").forEach((b) => b.classList.toggle("active", b.dataset.screen === name));
+      document.getElementById("screen-receipt").classList.toggle("hidden", name !== "receipt");
+      document.getElementById("screen-master").classList.toggle("hidden", name !== "master");
+      document.getElementById("screen-caliber").classList.toggle("hidden", name !== "caliber");
+    }
+
+    function toggleMore() {
+      document.getElementById("more-filters").classList.toggle("hidden");
+    }
+
+    function resetFilters() {
+      document.getElementById("filter-type").value = "all";
+      document.getElementById("filter-biz").value = "";
+      document.getElementById("filter-sales").value = "";
+      document.getElementById("filter-manager").value = "";
+      renderTable();
+    }
+
+    const EXPORT_FIELDS = [
+      { key: "platform", label: "支付平台" },
+      { key: "alias", label: "账户别名" },
+      { key: "entity", label: "主体名称" },
+      { key: "id", label: "交易ID" },
+      { key: "time", label: "交易时间（UTC+8）" },
+      { key: "ccy", label: "币种" },
+      { key: "amount", label: "金额" },
+      { key: "claimType", label: "认领类型", added: true },
+      { key: "biz", label: "认领业务" },
+      { key: "manager", label: "业务经理" },
+      { key: "sales", label: "业务员" },
+    ];
+
+    function dash(v) { return v ? v : '<span class="dash">-</span>'; }
+
+    function typeLabel(t) {
+      if (t === "ecom") return "电商认领";
+      if (t === "one") return "一键认领";
+      return "未认领";
+    }
+
+    function getFilteredRows() {
+      const type = document.getElementById("filter-type").value;
+      const biz = document.getElementById("filter-biz").value;
+      const sales = document.getElementById("filter-sales").value.trim();
+      const manager = document.getElementById("filter-manager").value.trim();
+      return rows.filter((r) => {
+        if (r.platform !== currentChannel) return false;
+        if (type !== "all" && r.claimType !== type) return false;
+        if (biz && r.biz !== biz) return false;
+        if (sales && !r.sales.includes(sales)) return false;
+        if (manager && !r.manager.includes(manager)) return false;
+        return true;
+      });
+    }
+
+    function openExport() {
+      document.getElementById("export-fields").innerHTML = EXPORT_FIELDS.map((f) => `
+        <label>
+          <input type="checkbox" class="export-field" value="${f.key}" checked onchange="syncExportAll()" />
+          ${f.label}${f.added ? '<span class="badge-new">新增</span>' : ""}
+        </label>
+      `).join("");
+      document.getElementById("export-all").checked = true;
+      document.getElementById("modal-export").classList.add("show");
+    }
+
+    function toggleExportAll(checked) {
+      document.querySelectorAll(".export-field").forEach((el) => { el.checked = checked; });
+    }
+
+    function syncExportAll() {
+      const boxes = Array.from(document.querySelectorAll(".export-field"));
+      document.getElementById("export-all").checked = boxes.every((el) => el.checked);
+    }
+
+    function csvCell(v) {
+      const s = String(v ?? "");
+      if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    }
+
+    function confirmExport() {
+      const selected = EXPORT_FIELDS.filter((f) => {
+        const box = document.querySelector(`.export-field[value="${f.key}"]`);
+        return box && box.checked;
+      });
+      if (!selected.length) { alert("请至少选择一个导出字段"); return; }
+      const list = getFilteredRows();
+      const header = selected.map((f) => csvCell(f.label)).join(",");
+      const lines = list.map((r) => selected.map((f) => {
+        const v = f.key === "claimType" ? typeLabel(r.claimType) : (r[f.key] || "");
+        return csvCell(v);
+      }).join(","));
+      const blob = new Blob(["\ufeff" + [header, ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `收款明细-${currentChannel}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      closeAll();
+    }
+
+    function typeTag(t) {
+      if (t === "ecom") return '<span class="tag tag-blue">电商认领</span>';
+      if (t === "one") return '<span class="tag tag-green">一键认领</span>';
+      return '<span class="tag tag-gray">未认领</span>';
+    }
+
+    function ops(row) {
+      if (row.claimType === "ecom") {
+        return `<button class="btn-link slot-4" onclick="openEcom('${row.id}','modify')">修改</button><button class="btn-link danger slot-4" onclick="openRevoke('${row.id}')">撤销</button>`;
+      }
+      if (row.claimType === "one") return '<span class="dash">-</span>';
+      return `<button class="btn-link" onclick="openOne('${row.id}')">一键认领</button><button class="btn-link" title="电商子业务认领" onclick="openEcom('${row.id}','claim')">电商认领</button>`;
+    }
+
+    function setChannel(name, btn) {
+      currentChannel = name;
+      document.querySelectorAll(".ch").forEach((el) => el.classList.remove("active"));
+      btn.classList.add("active");
+      renderTable();
+    }
+
+    function renderTable() {
+      const list = getFilteredRows();
+      document.getElementById("tbody").innerHTML = list.map((r) => `
+        <tr>
+          <td>${r.platform}</td>
+          <td>${r.alias || '<span class="dash">-</span>'}</td>
+          <td>${r.entity || '<span class="dash">-</span>'}</td>
+          <td>${r.id}</td>
+          <td>${r.time}</td>
+          <td>${r.ccy || "USD"}</td>
+          <td class="amount">${r.amount}</td>
+          <td>${typeTag(r.claimType)}</td>
+          <td>${dash(r.biz)}</td>
+          <td>${dash(r.manager)}</td>
+          <td>${dash(r.sales)}</td>
+          <td>${ops(r)}</td>
+        </tr>
+      `).join("");
+      document.getElementById("pager-text").textContent = `共 ${list.length} 条记录`;
+    }
+
+    function renderMaster() {
+      document.getElementById("master-body").innerHTML = Object.values(GROUPS).map((g) => `
+        <tr>
+          <td>${g.name}</td>
+          <td>${g.biz}</td>
+          <td>${g.sales}</td>
+          <td>${g.manager}</td>
+        </tr>
+      `).join("");
+    }
+
+    function openEcom(id, mode) {
+      claimingId = id;
+      ecomMode = mode || "claim";
+      const row = rows.find((r) => r.id === id);
+      if (ecomMode !== "modify" && row.claimType !== "none") {
+        alert("该流水已被认领，一笔流水只能认领一次");
+        return;
+      }
+      document.getElementById("ecom-title").textContent = ecomMode === "modify" ? "修改电商子业务认领" : "电商子业务认领";
+      document.getElementById("ecom-submit").textContent = ecomMode === "modify" ? "确认修改" : "确认认领";
+      document.getElementById("ecom-hint").textContent = ecomMode === "modify"
+        ? "占用不释放。只更换电商子业务，并按口径重写认领业务、业务员、业务经理。若要改为一键认领入账，请先撤销。"
+        : "仅归属到电商子业务，不会充值到客户资金账户。一笔流水只能认领一次，已一键认领的不能再做电商认领。";
+      document.getElementById("ecom-group").value = ecomMode === "modify" ? row.groupKey : "";
+      ecomFiles = ecomMode === "modify" ? (row.files || []).map((name) => ({ name })) : [];
+      document.getElementById("ecom-upload-label").className = ecomMode === "modify" ? "" : "req";
+      renderEcomFiles();
+      document.getElementById("modal-ecom").classList.add("show");
+    }
+    function openOne(id) {
+      claimingId = id;
+      document.getElementById("modal-one").classList.add("show");
+    }
+    function confirmOne() {
+      const row = rows.find((r) => r.id === claimingId);
+      if (!row || row.claimType !== "none") {
+        alert("该流水已被认领，一笔流水只能认领一次");
+        return;
+      }
+      const cid = document.getElementById("one-customer").value;
+      const customer = CUSTOMERS[cid];
+      if (!customer) {
+        alert("请选择客户");
+        return;
+      }
+      const sub = document.querySelector("input[name='sub']:checked");
+      row.claimType = "one";
+      row.biz = (sub && sub.value) || customer.biz;
+      row.sales = customer.sales;
+      row.manager = customer.manager;
+      addHistory(row, "一键认领", `${row.biz} · ${customer.label}`);
+      closeAll();
+      renderTable();
+    }
+    function closeAll() {
+      document.querySelectorAll(".overlay").forEach((el) => el.classList.remove("show"));
+    }
+
+    function confirmEcom() {
+      const key = document.getElementById("ecom-group").value;
+      const g = GROUPS[key];
+      if (!g) { alert("请选择电商子业务"); return; }
+      const row = rows.find((r) => r.id === claimingId);
+      if (ecomMode !== "modify" && row.claimType !== "none") {
+        alert("该流水已被认领，一笔流水只能认领一次");
+        return;
+      }
+      if (ecomMode !== "modify" && ecomFiles.length === 0) {
+        alert("请上传截图或 PDF 文件");
+        return;
+      }
+      if (ecomMode === "modify" && key === row.groupKey) {
+        alert("电商子业务未变化，如需清空请走撤销");
+        return;
+      }
+      if (ecomMode === "modify") {
+        addHistory(row, "修改", `${row.biz} → ${g.biz}`);
+      } else {
+        addHistory(row, "认领", g.biz);
+      }
+      row.claimType = "ecom";
+      row.groupKey = key;
+      row.biz = g.biz;
+      row.sales = g.sales;
+      row.manager = g.manager;
+      row.files = ecomFiles.map((f) => f.name);
+      closeAll();
+      renderTable();
+    }
+
+    function openRevoke(id) {
+      claimingId = id;
+      const r = rows.find((x) => x.id === id);
+      document.getElementById("rv-biz").textContent = r.biz;
+      document.getElementById("rv-sales").textContent = r.sales;
+      document.getElementById("rv-manager").textContent = r.manager;
+      document.getElementById("rv-reason").value = "";
+      document.getElementById("modal-revoke").classList.add("show");
+    }
+
+    function confirmRevoke() {
+      const reason = document.getElementById("rv-reason").value.trim();
+      if (!reason) { alert("请填写撤销原因"); return; }
+      const row = rows.find((r) => r.id === claimingId);
+      addHistory(row, "撤销", `${row.biz}；原因：${reason}`);
+      row.claimType = "none";
+      row.groupKey = "";
+      row.biz = "";
+      row.sales = "";
+      row.manager = "";
+      row.files = [];
+      closeAll();
+      renderTable();
+    }
+
+    function openView(id) {
+      const r = rows.find((x) => x.id === id);
+      const hist = r.history.length
+        ? r.history.map((h) => `<div class="k">${h.t}</div><div>${h.action}　${h.detail}</div>`).join("")
+        : `<div class="k">暂无</div><div class="dash">-</div>`;
+      document.getElementById("view-body").innerHTML = `
+        <p class="section-title">流水</p>
+        <div class="kv" style="padding:0 0 16px">
+          <div class="k">交易ID</div><div>${r.id}</div>
+          <div class="k">金额</div><div>${r.amount} USD</div>
+          <div class="k">支付平台</div><div>${r.platform}</div>
+        </div>
+        <p class="section-title">电商子业务认领结果</p>
+        <div class="kv" style="padding:0 0 16px">
+          <div class="k">认领类型</div><div>电商认领</div>
+          <div class="k">认领业务</div><div>${r.biz}</div>
+          <div class="k">业务经理</div><div>${r.manager}</div>
+          <div class="k">业务员</div><div>${r.sales}</div>
+          <div class="k">附件</div><div>${(r.files && r.files.length) ? r.files.join("、") : "-"}</div>
+          <div class="k">入账</div><div>未充值到客户资金账户</div>
+        </div>
+        <p class="section-title">变更记录</p>
+        <div class="kv" style="padding:0 0 16px">${hist}</div>
+        <button class="btn" onclick="closeAll();openEcom('${r.id}','modify')">修改</button>
+        <button class="btn btn-danger" style="margin-left:8px" onclick="closeAll();openRevoke('${r.id}')">撤销</button>
+      `;
+      document.getElementById("drawer-view").classList.add("show");
+    }
+
+    renderTable();
+    renderMaster();
+    bindEcomUpload();
+
+    function renderEcomFiles() {
+      document.getElementById("ecom-file-list").innerHTML = ecomFiles.map((f, i) => `
+        <div class="file-item"><span>${f.name}</span><button type="button" onclick="removeEcomFile(${i})">删除</button></div>
+      `).join("");
+    }
+
+    function removeEcomFile(i) {
+      ecomFiles.splice(i, 1);
+      renderEcomFiles();
+    }
+
+    function addEcomFiles(list) {
+      const next = Array.from(list);
+      for (const file of next) {
+        const okType = /image\//.test(file.type) || file.type === "application/pdf" || /\.(png|jpe?g|gif|webp|pdf)$/i.test(file.name);
+        if (!okType) { alert("只支持图片或 PDF"); continue; }
+        if (file.size > 20 * 1024 * 1024) { alert(`${file.name} 超过 20M`); continue; }
+        if (ecomFiles.length >= 10) { alert("最多上传 10 个文件"); break; }
+        ecomFiles.push(file);
+      }
+      renderEcomFiles();
+    }
+
+    function bindEcomUpload() {
+      const zone = document.getElementById("ecom-upload");
+      const input = document.getElementById("ecom-file-input");
+      zone.addEventListener("click", () => input.click());
+      input.addEventListener("change", () => { addEcomFiles(input.files); input.value = ""; });
+      zone.addEventListener("dragover", (e) => { e.preventDefault(); });
+      zone.addEventListener("drop", (e) => { e.preventDefault(); addEcomFiles(e.dataTransfer.files); });
+      document.getElementById("modal-ecom").addEventListener("paste", (e) => {
+        if (e.clipboardData && e.clipboardData.files.length) addEcomFiles(e.clipboardData.files);
+      });
+    }
+  </script>
+</body>
+</html>
