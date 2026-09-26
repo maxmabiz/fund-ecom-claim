@@ -521,7 +521,6 @@
               <th>交易时间（UTC+8）</th>
               <th>币种</th>
               <th>金额</th>
-              <th class="scope-ecom">流水类型</th>
               <th class="scope-ecom">认领类型</th>
               <th>认领业务</th>
               <th>业务经理</th>
@@ -890,7 +889,6 @@
       { key: "time", label: "交易时间（UTC+8）" },
       { key: "ccy", label: "币种" },
       { key: "amount", label: "金额" },
-      { key: "flowType", label: "流水类型", added: true },
       { key: "claimType", label: "认领类型", added: true },
       { key: "biz", label: "认领业务" },
       { key: "manager", label: "业务经理" },
@@ -904,10 +902,6 @@
       if (t === "ecom") return "电商认领";
       if (t === "one") return "一键认领";
       return "未认领";
-    }
-
-    function flowLabel(t) {
-      return t === "ecom" ? "电商公司收款" : "商户充值";
     }
 
     function getFilteredRows() {
@@ -965,7 +959,7 @@
       const list = getFilteredRows();
       const header = selected.map((f) => csvCell(f.label)).join(",");
       const lines = list.map((r) => selected.map((f) => {
-        const v = f.key === "claimType" ? typeLabel(r.claimType) : f.key === "flowType" ? flowLabel(r.flowType) : f.key === "arMarked" ? (hasAr(r) ? "是" : "否") : (r[f.key] || "");
+        const v = f.key === "claimType" ? typeLabel(r.claimType) : f.key === "arMarked" ? (hasAr(r) ? "是" : "否") : (r[f.key] || "");
         return csvCell(v);
       }).join(","));
       const blob = new Blob(["\ufeff" + [header, ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
@@ -981,11 +975,6 @@
       if (t === "ecom") return '<span class="tag tag-blue">电商认领</span>';
       if (t === "one") return '<span class="tag tag-green">一键认领</span>';
       return '<span class="tag tag-gray">未认领</span>';
-    }
-
-    function flowTag(t) {
-      if (t === "ecom") return '<span class="tag tag-blue">电商公司收款</span>';
-      return '<span class="tag tag-gray">商户充值</span>';
     }
 
     function hasAr(row) {
@@ -1046,7 +1035,6 @@
           <td>${r.time}</td>
           <td>${r.ccy || "USD"}</td>
           <td class="amount">${r.amount}</td>
-          <td>${flowTag(r.flowType)}</td>
           <td>${typeTag(r.claimType)}</td>
           <td>${dash(r.biz)}</td>
           <td>${dash(r.manager)}</td>
