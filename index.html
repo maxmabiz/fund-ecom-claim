@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>收款明细DTC · 电商子业务认领</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <title>收款明细 · 电商子业务认领 v1.3</title>
   <style>
     :root {
       --primary: #1677ff;
@@ -55,17 +57,18 @@
       min-height: calc(100% - 36px);
     }
     .sider {
-      width: 220px;
+      width: 184px;
       flex-shrink: 0;
       background: #fff;
       border-right: 1px solid var(--border);
-      overflow: auto;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
     .sider-brand {
       height: 48px;
       display: flex;
       align-items: center;
-      padding: 0 20px;
+      padding: 0 14px;
       font-size: 15px;
       font-weight: 600;
       color: var(--text);
@@ -76,8 +79,8 @@
       height: 40px;
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 0 16px;
+      gap: 8px;
+      padding: 0 12px;
       border: 0;
       background: none;
       color: var(--text);
@@ -102,8 +105,8 @@
       height: 40px;
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 0 12px 0 44px;
+      gap: 6px;
+      padding: 0 8px 0 34px;
       border: 0;
       background: none;
       color: var(--text);
@@ -119,8 +122,8 @@
     }
     .menu-item.active .menu-ico { color: var(--primary); }
     .menu-new {
-      margin-left: 6px;
-      padding: 0 5px;
+      margin-left: 4px;
+      padding: 0 4px;
       height: 16px;
       line-height: 16px;
       font-size: 11px;
@@ -322,8 +325,8 @@
 <body>
   <div class="proto-bar">
     <span>后台界面演示</span>
-    <span>v1.2</span>
-    <button class="active" data-screen="receipt" onclick="showScreen('receipt')">收款明细DTC</button>
+    <span>v1.3 · 收款明细（无 DTC 菜单）</span>
+    <button class="active" data-screen="receipt" onclick="showScreen('receipt')">收款明细</button>
     <button data-screen="master" onclick="showScreen('master')">电商子业务档案</button>
     <button data-screen="caliber" onclick="showScreen('caliber')">字段口径草案</button>
     <span style="margin-left:auto">口径待定：当前按电商子业务主数据带出，确认后写入流水</span>
@@ -359,14 +362,9 @@
             <svg class="menu-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="5.2"/><path d="M5.5 8.2l1.8 1.8 3.4-3.6"/></svg>
             Paypal 账单管理
           </button>
-          <button type="button" class="menu-item" data-menu="legacy" data-label="收款明细" onclick="selectMenu(this)">
+          <button type="button" class="menu-item active" data-menu="receipt" data-label="收款明细" onclick="selectMenu(this)">
             <svg class="menu-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="2.5" width="10" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg>
             收款明细
-          </button>
-          <button type="button" class="menu-item active" data-menu="dtc" data-label="收款明细DTC" onclick="selectMenu(this)">
-            <svg class="menu-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="2.5" width="10" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg>
-            收款明细DTC
-            <span class="menu-new">新</span>
           </button>
         </div>
       </div>
@@ -374,10 +372,10 @@
     <div class="main">
 
   <div class="app" id="screen-receipt">
-    <div class="crumb">Fund / 业务入账 / <b>收款明细DTC</b></div>
+    <div class="crumb">Fund / 业务入账 / <b>收款明细</b></div>
     <div class="page-tabs">
       <button class="page-tab">工作台</button>
-      <button class="page-tab active">收款明细DTC</button>
+      <button class="page-tab active">收款明细</button>
     </div>
     <div class="page">
       <div class="filters" id="filters">
@@ -398,11 +396,12 @@
           <input class="ctrl" placeholder="输入交易ID" />
         </div>
         <div class="field">
-          <label>认领状态</label>
+          <label>认领类型</label>
           <select class="ctrl" id="filter-type">
             <option value="all">全部</option>
             <option value="none">未认领</option>
-            <option value="claimed">已认领</option>
+            <option value="one">一键认领</option>
+            <option value="ecom">电商认领</option>
           </select>
         </div>
         <button class="btn btn-primary" onclick="renderTable()">搜索</button>
@@ -414,6 +413,9 @@
           <label>认领业务</label>
           <select class="ctrl" id="filter-biz">
             <option value="">全部</option>
+            <option>履约</option>
+            <option>广告</option>
+            <option>拒付</option>
             <option>独立站一组</option>
             <option>独立站二组</option>
             <option>独立站三组</option>
@@ -432,10 +434,15 @@
 
       <div class="channel-bar">
         <div class="channels">
-          <button class="ch active" onclick="setChannel('Airwallex', this)">Airwallex</button>
+          <button class="ch active" onclick="setChannel('Wise', this)">Wise</button>
+          <button class="ch" onclick="setChannel('Airwallex', this)">Airwallex</button>
+          <button class="ch" onclick="setChannel('Payoneer', this)">Payoneer</button>
+          <button class="ch" onclick="setChannel('Worldfirst', this)">Worldfirst</button>
           <button class="ch" onclick="setChannel('PingPong', this)">PingPong</button>
           <button class="ch" onclick="setChannel('PayPal', this)">PayPal</button>
           <button class="ch" onclick="setChannel('OceanPayment', this)">OceanPayment</button>
+          <button class="ch" onclick="setChannel('Others', this)">Others</button>
+          <button class="ch" onclick="setChannel('HSBC USD (Swift)', this)">HSBC USD (Swift)</button>
         </div>
         <div class="actions-right">
           <button class="btn">手动上传Excel</button>
@@ -455,7 +462,7 @@
               <th>交易时间（UTC+8）</th>
               <th>币种</th>
               <th>金额</th>
-              <th>认领状态</th>
+              <th>认领类型</th>
               <th>认领业务</th>
               <th>业务经理</th>
               <th>业务员</th>
@@ -530,18 +537,7 @@
             </tbody>
           </table>
         </div>
-        <p class="sub" style="margin-top:16px">演示弹窗当前按方案 A 运行。一键认领仍在「收款明细」完成，不写这三列。本页只做电商认领。</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="app hidden" id="screen-legacy">
-    <div class="crumb">Fund / 业务入账 / <b>收款明细</b></div>
-    <div class="page">
-      <div class="page-card">
-        <h2>收款明细</h2>
-        <div class="sub">现有菜单，本期不改。一键认领仍在本页完成。</div>
-        <div class="hint">电商流水请走左侧新菜单「收款明细DTC」，不要在本页做电商认领。</div>
+        <p class="sub" style="margin-top:16px">演示弹窗当前按方案 A 运行。一键认领仍在本页完成，写入客户口径三字段；电商认领按档案写独立站一组到四组。</p>
       </div>
     </div>
   </div>
@@ -556,6 +552,41 @@
     </div>
   </div>
 
+    </div>
+  </div>
+
+  <div class="overlay" id="modal-one">
+    <div class="modal">
+      <div class="modal-hd">一键认领 <button class="close" onclick="closeAll()">×</button></div>
+      <div class="modal-bd">
+        <div class="form-row">
+          <div class="field">
+            <label class="req">子业务</label>
+            <div class="radio">
+              <label><input type="radio" name="sub" value="ad" /> 广告</label>
+              <label><input type="radio" name="sub" value="fulfill" checked /> 履约</label>
+              <label><input type="radio" name="sub" value="chargeback" /> 拒付</label>
+            </div>
+          </div>
+          <div class="field">
+            <label class="req">客户</label>
+            <select class="ctrl" id="one-customer">
+              <option value="">请选择客户</option>
+              <option value="c1">履约: Aboubacar Sankhon</option>
+              <option value="c2">履约: Lucas D</option>
+              <option value="c3">履约: agency.setup2</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:16px">
+          <label class="req">上传文件（支持图片/pdf格式文件，最多10个，单个文件20M内）</label>
+          <div class="upload">点击或拖拽或粘贴文件到此区域上传<br />支持图片/pdf格式文件</div>
+        </div>
+      </div>
+      <div class="modal-ft">
+        <button class="btn" onclick="closeAll()">取消</button>
+        <button class="btn btn-primary" onclick="confirmOne()">确认</button>
+      </div>
     </div>
   </div>
 
@@ -659,6 +690,11 @@
 
   <script>
     const CURRENT_USER = "李晨";
+    const CUSTOMERS = {
+      c1: { label: "履约: Aboubacar Sankhon", biz: "fulfill", sales: "周启明", manager: "履约一组" },
+      c2: { label: "履约: Lucas D", biz: "fulfill", sales: "林晓荷", manager: "履约二组" },
+      c3: { label: "履约: agency.setup2", biz: "fulfill", sales: "周启明", manager: "履约一组" },
+    };
     const GROUPS = {
       g1: { name: "独立站一组", biz: "独立站一组", sales: "陈思远", manager: "刘洋" },
       g2: { name: "独立站二组", biz: "独立站二组", sales: "王敏", manager: "赵琦" },
@@ -667,26 +703,36 @@
     };
 
     const rows = [
+      { id: "23122143432", platform: "Wise", alias: "HQY-Wise-USD-01", entity: "环球易（香港）", amount: "99.00", ccy: "USD", time: "2026-09-06 23:59:00", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "23122143333", platform: "Wise", alias: "HQY-Wise-USD-01", entity: "环球易（香港）", amount: "1280.50", ccy: "USD", time: "2026-09-06 21:12:18", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "23122144001", platform: "Wise", alias: "HQY-Wise-USD-02", entity: "环球易（香港）", amount: "350.00", ccy: "USD", time: "2026-09-05 18:40:02", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "23122144018", platform: "Wise", alias: "HQY-Wise-EUR-01", entity: "环球易（香港）", amount: "760.00", ccy: "EUR", time: "2026-09-05 11:03:44", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "23122145102", platform: "Wise", alias: "HQY-Wise-USD-01", entity: "环球易（香港）", amount: "4200.00", ccy: "USD", time: "2026-09-04 09:22:10", claimType: "ecom", groupKey: "g2", biz: "独立站二组", sales: "王敏", manager: "赵琦", files: ["独立站打款截图.png"], history: [{ t: "2026-09-04 10:01", operator: "王敏", action: "电商认领", detail: "认领到独立站二组；业务员 王敏；业务经理 赵琦；附件 独立站打款截图.png" }] },
+      { id: "23122145188", platform: "Wise", alias: "HQY-Wise-USD-02", entity: "环球易（香港）", amount: "1888.00", ccy: "USD", time: "2026-09-03 16:08:55", claimType: "ecom", groupKey: "g1", biz: "独立站一组", sales: "陈思远", manager: "刘洋", files: ["wise-receipt.pdf"], history: [{ t: "2026-09-03 17:20", operator: "陈思远", action: "电商认领", detail: "认领到独立站一组；业务员 陈思远；业务经理 刘洋；附件 wise-receipt.pdf" }] },
+      { id: "23122145220", platform: "Wise", alias: "HQY-Wise-USD-01", entity: "环球易（香港）", amount: "560.20", ccy: "USD", time: "2026-09-03 08:15:00", claimType: "ecom", groupKey: "g4", biz: "独立站四组", sales: "孙悦", manager: "吴岚", files: ["screenshot-0903.jpg"], history: [{ t: "2026-09-03 09:40", operator: "孙悦", action: "电商认领", detail: "认领到独立站三组；业务员 郑浩；业务经理 周宁；附件 screenshot-0903.jpg" }, { t: "2026-09-03 11:12", operator: "李晨", action: "修改", detail: "独立站三组 → 独立站四组；业务员 郑浩 → 孙悦；业务经理 周宁 → 吴岚；附件 screenshot-0903.jpg" }] },
+      { id: "23122146011", platform: "Wise", alias: "HQY-Wise-USD-01", entity: "环球易（香港）", amount: "2100.00", ccy: "USD", time: "2026-09-02 14:33:27", claimType: "one", groupKey: "", biz: "履约", sales: "周启明", manager: "履约一组", files: ["履约-客户A.pdf"], history: [{ t: "2026-09-02 15:02", operator: "周启明", action: "一键认领", detail: "履约 · Aboubacar Sankhon" }] },
+      { id: "23122146090", platform: "Wise", alias: "HQY-Wise-EUR-01", entity: "环球易（香港）", amount: "95.00", ccy: "EUR", time: "2026-09-01 20:01:09", claimType: "one", groupKey: "", biz: "履约", sales: "林晓荷", manager: "履约二组", files: ["履约-凭证.png"], history: [{ t: "2026-09-01 20:18", operator: "林晓荷", action: "一键认领", detail: "履约 · Lucas D" }] },
+      { id: "23122147005", platform: "Wise", alias: "HQY-Wise-USD-02", entity: "环球易（香港）", amount: "9999.99", ccy: "USD", time: "2026-08-30 10:00:00", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
       { id: "AW88219001", platform: "Airwallex", alias: "HQY-AWX-USD", entity: "环球易（新加坡）", amount: "1500.00", ccy: "USD", time: "2026-09-06 19:20:11", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
       { id: "AW88219078", platform: "Airwallex", alias: "HQY-AWX-USD", entity: "环球易（新加坡）", amount: "320.40", ccy: "USD", time: "2026-09-05 13:44:02", claimType: "ecom", groupKey: "g2", biz: "独立站二组", sales: "王敏", manager: "赵琦", files: ["awx-in.png"], history: [{ t: "2026-09-05 14:01", operator: "王敏", action: "电商认领", detail: "认领到独立站二组；业务员 王敏；业务经理 赵琦；附件 awx-in.png" }] },
-      { id: "AW88219120", platform: "Airwallex", alias: "HQY-AWX-GBP", entity: "环球易（新加坡）", amount: "640.00", ccy: "GBP", time: "2026-09-04 07:55:30", claimType: "ecom", groupKey: "g3", biz: "独立站三组", sales: "郑浩", manager: "周宁", files: ["awx-gbp.png"], history: [{ t: "2026-09-04 08:12", operator: "李晨", action: "电商认领", detail: "认领到独立站三组；业务员 郑浩；业务经理 周宁；附件 awx-gbp.png" }] },
+      { id: "AW88219120", platform: "Airwallex", alias: "HQY-AWX-GBP", entity: "环球易（新加坡）", amount: "640.00", ccy: "GBP", time: "2026-09-04 07:55:30", claimType: "one", groupKey: "", biz: "履约", sales: "周启明", manager: "履约一组", files: ["履约-invoice.pdf"], history: [{ t: "2026-09-04 08:12", operator: "周启明", action: "一键认领", detail: "履约 · agency.setup2" }] },
+      { id: "PN-20260906-01", platform: "Payoneer", alias: "HQY-PO-USD", entity: "环球易（香港）", amount: "88.00", ccy: "USD", time: "2026-09-06 12:08:00", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "PN-20260904-17", platform: "Payoneer", alias: "HQY-PO-USD", entity: "环球易（香港）", amount: "2450.00", ccy: "USD", time: "2026-09-04 22:19:41", claimType: "ecom", groupKey: "g1", biz: "独立站一组", sales: "陈思远", manager: "刘洋", files: ["payoneer.jpg", "备注说明.pdf"], history: [{ t: "2026-09-05 09:00", operator: "陈思远", action: "电商认领", detail: "认领到独立站一组；业务员 陈思远；业务经理 刘洋；附件 payoneer.jpg、备注说明.pdf" }] },
+      { id: "PN-20260902-03", platform: "Payoneer", alias: "HQY-PO-USD", entity: "环球易（香港）", amount: "670.00", ccy: "USD", time: "2026-09-02 03:12:08", claimType: "one", groupKey: "", biz: "拒付", sales: "韩亦辰", manager: "风控一组", files: ["拒付-材料.pdf"], history: [{ t: "2026-09-02 10:22", operator: "韩亦辰", action: "一键认领", detail: "拒付 · 客户 C" }] },
+      { id: "WF778120", platform: "Worldfirst", alias: "HQY-WF-USD", entity: "环球易（香港）", amount: "5000.00", ccy: "USD", time: "2026-09-06 08:00:00", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "WF778188", platform: "Worldfirst", alias: "HQY-WF-USD", entity: "环球易（香港）", amount: "1320.15", ccy: "USD", time: "2026-09-03 19:27:33", claimType: "ecom", groupKey: "g4", biz: "独立站四组", sales: "孙悦", manager: "吴岚", files: ["wf-credit.png"], history: [{ t: "2026-09-03 20:05", operator: "孙悦", action: "电商认领", detail: "认领到独立站四组；业务员 孙悦；业务经理 吴岚；附件 wf-credit.png" }] },
       { id: "PP-0911-002", platform: "PingPong", alias: "HQY-PP-USD", entity: "环球易（深圳）", amount: "210.00", ccy: "USD", time: "2026-09-06 15:45:19", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
       { id: "PP-0908-019", platform: "PingPong", alias: "HQY-PP-USD", entity: "环球易（深圳）", amount: "8800.00", ccy: "USD", time: "2026-09-08 11:11:11", claimType: "ecom", groupKey: "g2", biz: "独立站二组", sales: "王敏", manager: "赵琦", files: ["pingpong-入账.pdf"], history: [{ t: "2026-09-08 11:40", operator: "王敏", action: "电商认领", detail: "认领到独立站二组；业务员 王敏；业务经理 赵琦；附件 pingpong-入账.pdf" }] },
-      { id: "PP-0902-088", platform: "PingPong", alias: "HQY-PP-USD", entity: "环球易（深圳）", amount: "12500.00", ccy: "USD", time: "2026-09-02 16:48:00", claimType: "ecom", groupKey: "g1", biz: "独立站一组", sales: "陈思远", manager: "刘洋", files: ["pingpong-凭证.pdf"], history: [{ t: "2026-09-02 17:10", operator: "陈思远", action: "电商认领", detail: "认领到独立站一组；业务员 陈思远；业务经理 刘洋；附件 pingpong-凭证.pdf" }] },
       { id: "PYPL-20260906-01", platform: "PayPal", alias: "HQY-PayPal-USD", entity: "环球易（香港）", amount: "88.00", ccy: "USD", time: "2026-09-06 12:08:00", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
       { id: "PYPL-20260904-17", platform: "PayPal", alias: "HQY-PayPal-USD", entity: "环球易（香港）", amount: "2450.00", ccy: "USD", time: "2026-09-04 22:19:41", claimType: "ecom", groupKey: "g1", biz: "独立站一组", sales: "陈思远", manager: "刘洋", files: ["paypal.jpg", "备注说明.pdf"], history: [{ t: "2026-09-05 09:00", operator: "陈思远", action: "电商认领", detail: "认领到独立站一组；业务员 陈思远；业务经理 刘洋；附件 paypal.jpg、备注说明.pdf" }] },
-      { id: "PYPL-20260902-03", platform: "PayPal", alias: "HQY-PayPal-USD", entity: "环球易（香港）", amount: "670.00", ccy: "USD", time: "2026-09-02 03:12:08", claimType: "ecom", groupKey: "g4", biz: "独立站四组", sales: "孙悦", manager: "吴岚", files: ["paypal-receipt.pdf"], history: [{ t: "2026-09-02 10:22", operator: "李晨", action: "电商认领", detail: "认领到独立站四组；业务员 孙悦；业务经理 吴岚；附件 paypal-receipt.pdf" }] },
       { id: "OP-23122143432", platform: "OceanPayment", alias: "HQY-OP-USD-01", entity: "环球易（香港）", amount: "99.00", ccy: "USD", time: "2026-09-06 23:59:00", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
-      { id: "OP-23122143333", platform: "OceanPayment", alias: "HQY-OP-USD-01", entity: "环球易（香港）", amount: "1280.50", ccy: "USD", time: "2026-09-06 21:12:18", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
-      { id: "OP-23122144001", platform: "OceanPayment", alias: "HQY-OP-USD-02", entity: "环球易（香港）", amount: "350.00", ccy: "USD", time: "2026-09-05 18:40:02", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [{ t: "2026-09-05 18:55:00", operator: "陈思远", action: "电商认领", detail: "认领到独立站二组；业务员 王敏；业务经理 赵琦；附件 op-0905.png" }, { t: "2026-09-05 19:20:11", operator: "李晨", action: "撤销", detail: "撤销「独立站二组」；原因：认领组选错" }] },
       { id: "OP-23122145102", platform: "OceanPayment", alias: "HQY-OP-USD-01", entity: "环球易（香港）", amount: "4200.00", ccy: "USD", time: "2026-09-04 09:22:10", claimType: "ecom", groupKey: "g2", biz: "独立站二组", sales: "王敏", manager: "赵琦", files: ["独立站打款截图.png"], history: [{ t: "2026-09-04 10:01", operator: "王敏", action: "电商认领", detail: "认领到独立站二组；业务员 王敏；业务经理 赵琦；附件 独立站打款截图.png" }] },
-      { id: "OP-23122145188", platform: "OceanPayment", alias: "HQY-OP-USD-02", entity: "环球易（香港）", amount: "1888.00", ccy: "USD", time: "2026-09-03 16:08:55", claimType: "ecom", groupKey: "g1", biz: "独立站一组", sales: "陈思远", manager: "刘洋", files: ["op-receipt.pdf"], history: [{ t: "2026-09-03 17:20", operator: "陈思远", action: "电商认领", detail: "认领到独立站一组；业务员 陈思远；业务经理 刘洋；附件 op-receipt.pdf" }] },
-      { id: "OP-23122145220", platform: "OceanPayment", alias: "HQY-OP-USD-01", entity: "环球易（香港）", amount: "560.20", ccy: "USD", time: "2026-09-03 08:15:00", claimType: "ecom", groupKey: "g4", biz: "独立站四组", sales: "孙悦", manager: "吴岚", files: ["screenshot-0903.jpg"], history: [{ t: "2026-09-03 09:40", operator: "孙悦", action: "电商认领", detail: "认领到独立站三组；业务员 郑浩；业务经理 周宁；附件 screenshot-0903.jpg" }, { t: "2026-09-03 11:12", operator: "李晨", action: "修改", detail: "独立站三组 → 独立站四组；业务员 郑浩 → 孙悦；业务经理 周宁 → 吴岚；附件 screenshot-0903.jpg" }] },
-      { id: "OP-23122146011", platform: "OceanPayment", alias: "HQY-OP-USD-01", entity: "环球易（香港）", amount: "2100.00", ccy: "USD", time: "2026-09-02 14:33:27", claimType: "ecom", groupKey: "g3", biz: "独立站三组", sales: "郑浩", manager: "周宁", files: ["op-客户A.pdf"], history: [{ t: "2026-09-02 15:02", operator: "郑浩", action: "电商认领", detail: "认领到独立站三组；业务员 郑浩；业务经理 周宁；附件 op-客户A.pdf" }] },
-      { id: "OP-23122146090", platform: "OceanPayment", alias: "HQY-OP-EUR-01", entity: "环球易（香港）", amount: "95.00", ccy: "EUR", time: "2026-09-01 20:01:09", claimType: "ecom", groupKey: "g1", biz: "独立站一组", sales: "陈思远", manager: "刘洋", files: ["op-eur.png"], history: [{ t: "2026-09-01 20:18", operator: "陈思远", action: "电商认领", detail: "认领到独立站一组；业务员 陈思远；业务经理 刘洋；附件 op-eur.png" }] },
+      { id: "OT-20260901", platform: "Others", alias: "HQY-Bank-CNH", entity: "环球易（深圳）", amount: "36000.00", ccy: "CNH", time: "2026-09-01 09:30:00", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
+      { id: "HSBC-SWIFT-0902", platform: "HSBC USD (Swift)", alias: "HQY-HSBC-USD", entity: "环球易（香港）", amount: "12500.00", ccy: "USD", time: "2026-09-02 16:48:00", claimType: "one", groupKey: "", biz: "履约", sales: "周启明", manager: "履约一组", files: ["swift-mt103.pdf"], history: [{ t: "2026-09-02 17:10", operator: "周启明", action: "一键认领", detail: "履约 · 客户 D" }] },
+      { id: "HSBC-SWIFT-0906", platform: "HSBC USD (Swift)", alias: "HQY-HSBC-USD", entity: "环球易（香港）", amount: "430.00", ccy: "USD", time: "2026-09-06 04:02:51", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
     ];
 
-    let currentChannel = "Airwallex";
+    let currentChannel = "Wise";
 
     let claimingId = null;
     let ecomMode = "claim";
@@ -707,10 +753,9 @@
       document.getElementById("screen-receipt").classList.toggle("hidden", name !== "receipt");
       document.getElementById("screen-master").classList.toggle("hidden", name !== "master");
       document.getElementById("screen-caliber").classList.toggle("hidden", name !== "caliber");
-      document.getElementById("screen-legacy").classList.toggle("hidden", name !== "legacy");
       document.getElementById("screen-other").classList.toggle("hidden", name !== "other");
       if (name === "receipt" || name === "master" || name === "caliber") {
-        document.querySelectorAll(".menu-item").forEach((el) => el.classList.toggle("active", el.dataset.menu === "dtc"));
+        document.querySelectorAll(".menu-item").forEach((el) => el.classList.toggle("active", el.dataset.menu === "receipt"));
       }
     }
 
@@ -721,12 +766,8 @@
     function selectMenu(el) {
       const key = el.dataset.menu;
       document.querySelectorAll(".menu-item").forEach((item) => item.classList.toggle("active", item === el));
-      if (key === "dtc") {
+      if (key === "receipt") {
         showScreen("receipt");
-        return;
-      }
-      if (key === "legacy") {
-        showScreen("legacy");
         return;
       }
       document.getElementById("other-title").textContent = el.dataset.label;
@@ -754,7 +795,7 @@
       { key: "time", label: "交易时间（UTC+8）" },
       { key: "ccy", label: "币种" },
       { key: "amount", label: "金额" },
-      { key: "claimType", label: "认领状态", added: true },
+      { key: "claimType", label: "认领类型", added: true },
       { key: "biz", label: "认领业务" },
       { key: "manager", label: "业务经理" },
       { key: "sales", label: "业务员" },
@@ -763,7 +804,9 @@
     function dash(v) { return v ? v : '<span class="dash">-</span>'; }
 
     function typeLabel(t) {
-      return t === "none" ? "未认领" : "已认领";
+      if (t === "ecom") return "电商认领";
+      if (t === "one") return "一键认领";
+      return "未认领";
     }
 
     function getFilteredRows() {
@@ -773,9 +816,7 @@
       const manager = document.getElementById("filter-manager").value.trim();
       return rows.filter((r) => {
         if (r.platform !== currentChannel) return false;
-        const claimed = r.claimType !== "none";
-        if (type === "none" && claimed) return false;
-        if (type === "claimed" && !claimed) return false;
+        if (type !== "all" && r.claimType !== type) return false;
         if (biz && r.biz !== biz) return false;
         if (sales && !r.sales.includes(sales)) return false;
         if (manager && !r.manager.includes(manager)) return false;
@@ -824,15 +865,16 @@
       const blob = new Blob(["\ufeff" + [header, ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `收款明细DTC-${currentChannel}.csv`;
+      a.download = `收款明细-${currentChannel}.csv`;
       a.click();
       URL.revokeObjectURL(a.href);
       closeAll();
     }
 
     function typeTag(t) {
-      if (t === "none") return '<span class="tag tag-gray">未认领</span>';
-      return '<span class="tag tag-blue">已认领</span>';
+      if (t === "ecom") return '<span class="tag tag-blue">电商认领</span>';
+      if (t === "one") return '<span class="tag tag-green">一键认领</span>';
+      return '<span class="tag tag-gray">未认领</span>';
     }
 
     function ops(row) {
@@ -840,7 +882,8 @@
       if (row.claimType === "ecom") {
         return `<button class="btn-link slot-4" onclick="openEcom('${row.id}','modify')">修改认领</button>${log}`;
       }
-      return `<button class="btn-link slot-4" title="电商子业务认领" onclick="openEcom('${row.id}','claim')">电商认领</button>${log}`;
+      if (row.claimType === "one") return log;
+      return `<button class="btn-link" onclick="openOne('${row.id}')">一键认领</button><button class="btn-link" title="电商子业务认领" onclick="openEcom('${row.id}','claim')">电商认领</button>${log}`;
     }
 
     function setChannel(name, btn) {
@@ -930,6 +973,42 @@
       setEcomRevokeView(false);
       document.getElementById("modal-ecom").classList.add("show");
     }
+
+    function openOne(id) {
+      const row = rows.find((r) => r.id === id);
+      if (!row || row.claimType !== "none") {
+        alert("该流水已被认领，一笔流水只能认领一次");
+        return;
+      }
+      claimingId = id;
+      document.getElementById("one-customer").value = "";
+      document.querySelector("input[name='sub'][value='fulfill']").checked = true;
+      document.getElementById("modal-one").classList.add("show");
+    }
+
+    function confirmOne() {
+      const row = rows.find((r) => r.id === claimingId);
+      if (!row || row.claimType !== "none") {
+        alert("该流水已被认领，一笔流水只能认领一次");
+        return;
+      }
+      const cid = document.getElementById("one-customer").value;
+      const customer = CUSTOMERS[cid];
+      if (!customer) {
+        alert("请选择客户");
+        return;
+      }
+      const sub = document.querySelector("input[name='sub']:checked");
+      const subLabels = { ad: "广告", fulfill: "履约", chargeback: "拒付" };
+      row.claimType = "one";
+      row.biz = (sub && subLabels[sub.value]) || "履约";
+      row.sales = customer.sales;
+      row.manager = customer.manager;
+      addHistory(row, "一键认领", `${row.biz} · ${customer.label.replace(/^[^:]+:\s*/, "")}`);
+      closeAll();
+      renderTable();
+    }
+
     function closeAll() {
       document.querySelectorAll(".overlay").forEach((el) => el.classList.remove("show"));
     }
