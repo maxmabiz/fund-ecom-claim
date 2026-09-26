@@ -11,7 +11,7 @@
 
 https://maxmabiz.github.io/fund-ecom-claim/
 
-Pages 仍指向已发布的 v1.2。v1.4 已打 tag，未推送 Pages。
+Pages 当前为 v1.4。v1.2 为带独立 DTC 菜单的冻结快照。
 
 ## 本地预览
 
