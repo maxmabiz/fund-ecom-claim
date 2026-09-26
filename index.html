@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
-  <title>收款明细 · 电商子业务认领 v1.3</title>
+  <title>收款明细 · 电商子业务认领 v1.4</title>
   <style>
     :root {
       --primary: #1677ff;
@@ -192,6 +192,24 @@
     .btn-link + .btn-link { margin-left: 4px; }
     .btn-link.muted { color: var(--text-2); }
     .actions-right { display: flex; gap: 8px; justify-content: flex-end; }
+    .scope-toggle {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: rgba(255,255,255,.75);
+      cursor: pointer;
+      user-select: none;
+    }
+    .scope-toggle input { accent-color: #faad14; }
+    body.show-scope .scope-ecom {
+      border-bottom: 1px dashed #d46b08;
+      padding-bottom: 1px;
+    }
+    body.show-scope .scope-ecom-box {
+      outline: 1px dashed #d46b08;
+      outline-offset: 3px;
+    }
 
     .channel-bar {
       display: flex; align-items: center; justify-content: space-between;
@@ -266,7 +284,29 @@
       display: flex; justify-content: space-between; align-items: center;
       padding: 6px 10px; background: var(--header); border-radius: 4px; font-size: 13px;
     }
+    .file-acts { display: flex; align-items: center; gap: 4px; }
     .file-item button { border: 0; background: none; color: var(--text-3); cursor: pointer; }
+    .file-item .btn-link { color: var(--primary); padding: 0 6px; }
+    .preview-overlay { z-index: 40; padding-top: 6vh; }
+    .preview-box {
+      width: min(880px, 92vw); max-height: 86vh;
+      background: #fff; border-radius: 10px; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .preview-bd {
+      padding: 16px; overflow: auto; background: #f5f5f5;
+      min-height: 360px; display: flex; justify-content: center; align-items: flex-start;
+    }
+    .preview-img, .preview-frame {
+      max-width: 100%; max-height: 72vh; background: #fff;
+    }
+    .preview-frame { width: 100%; height: 72vh; border: 0; }
+    .preview-mock {
+      width: min(520px, 100%); background: #fff; border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08); padding: 28px 24px;
+    }
+    .preview-mock h3 { margin: 0 0 8px; font-size: 16px; }
+    .preview-mock p { margin: 0; color: var(--text-2); font-size: 13px; line-height: 1.6; }
     .txn-card {
       display: grid;
       grid-template-columns: 1.3fr 1.3fr 1.1fr auto;
@@ -322,14 +362,17 @@
     }
   </style>
 </head>
-<body>
+<body class="show-scope">
   <div class="proto-bar">
     <span>后台界面演示</span>
-    <span>v1.3 · 收款明细（无 DTC 菜单）</span>
+    <span>v1.4 · 收款明细（无 DTC 菜单）</span>
     <button class="active" data-screen="receipt" onclick="showScreen('receipt')">收款明细</button>
     <button data-screen="master" onclick="showScreen('master')">电商子业务档案</button>
     <button data-screen="caliber" onclick="showScreen('caliber')">字段口径草案</button>
-    <span style="margin-left:auto">口径待定：当前按电商子业务主数据带出，确认后写入流水</span>
+    <label class="scope-toggle">
+      <input type="checkbox" id="scope-dash" checked onchange="setScopeDash(this.checked)" />
+      虚线标注本次需求
+    </label>
   </div>
 
   <div class="layout">
@@ -395,7 +438,7 @@
           <label>交易ID</label>
           <input class="ctrl" placeholder="输入交易ID" />
         </div>
-        <div class="field">
+        <div class="field scope-ecom-box">
           <label>认领类型</label>
           <select class="ctrl" id="filter-type">
             <option value="all">全部</option>
@@ -430,6 +473,14 @@
           <label>业务员</label>
           <input class="ctrl" id="filter-sales" placeholder="业务员" />
         </div>
+        <div class="field">
+          <label>应收单标记</label>
+          <select class="ctrl" id="filter-ar">
+            <option value="all">全部</option>
+            <option value="yes">是</option>
+            <option value="no">否</option>
+          </select>
+        </div>
       </div>
 
       <div class="channel-bar">
@@ -462,10 +513,11 @@
               <th>交易时间（UTC+8）</th>
               <th>币种</th>
               <th>金额</th>
-              <th>认领类型</th>
+              <th class="scope-ecom">认领类型</th>
               <th>认领业务</th>
               <th>业务经理</th>
               <th>业务员</th>
+              <th>应收单标记</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -591,7 +643,7 @@
   </div>
 
   <div class="overlay" id="modal-ecom">
-    <div class="modal wide">
+    <div class="modal wide scope-ecom-box">
       <div class="modal-hd"><span id="ecom-title">电商子业务认领</span> <button class="close" onclick="closeAll()">×</button></div>
       <div class="modal-bd">
         <div class="txn-card" id="ecom-txn">
@@ -681,6 +733,27 @@
     </div>
   </div>
 
+  <div class="overlay" id="modal-ar">
+    <div class="modal">
+      <div class="modal-hd"><span id="ar-title">标记应收单</span> <button class="close" onclick="closeAll()">×</button></div>
+      <div class="modal-bd">
+        <p class="sub" id="ar-meta" style="margin-top:0"></p>
+        <p class="sub">一键认领完成后，可将流水关联到应收单。标记是信息流，不影响入账和扣款。</p>
+      </div>
+      <div class="modal-ft">
+        <button class="btn" onclick="closeAll()">取消</button>
+        <button class="btn btn-primary" onclick="closeAll()">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay preview-overlay" id="modal-preview">
+    <div class="preview-box">
+      <div class="modal-hd"><span id="preview-title">查看附件</span> <button class="close" onclick="closePreview()">×</button></div>
+      <div class="preview-bd" id="preview-body"></div>
+    </div>
+  </div>
+
   <div class="overlay drawer-overlay" id="drawer-view">
     <div class="drawer">
       <div class="modal-hd">操作日志 <button class="close" onclick="closeAll()">×</button></div>
@@ -710,15 +783,15 @@
       { id: "23122145102", platform: "Wise", alias: "HQY-Wise-USD-01", entity: "环球易（香港）", amount: "4200.00", ccy: "USD", time: "2026-09-04 09:22:10", claimType: "ecom", groupKey: "g2", biz: "独立站二组", sales: "王敏", manager: "赵琦", files: ["独立站打款截图.png"], history: [{ t: "2026-09-04 10:01", operator: "王敏", action: "电商认领", detail: "认领到独立站二组；业务员 王敏；业务经理 赵琦；附件 独立站打款截图.png" }] },
       { id: "23122145188", platform: "Wise", alias: "HQY-Wise-USD-02", entity: "环球易（香港）", amount: "1888.00", ccy: "USD", time: "2026-09-03 16:08:55", claimType: "ecom", groupKey: "g1", biz: "独立站一组", sales: "陈思远", manager: "刘洋", files: ["wise-receipt.pdf"], history: [{ t: "2026-09-03 17:20", operator: "陈思远", action: "电商认领", detail: "认领到独立站一组；业务员 陈思远；业务经理 刘洋；附件 wise-receipt.pdf" }] },
       { id: "23122145220", platform: "Wise", alias: "HQY-Wise-USD-01", entity: "环球易（香港）", amount: "560.20", ccy: "USD", time: "2026-09-03 08:15:00", claimType: "ecom", groupKey: "g4", biz: "独立站四组", sales: "孙悦", manager: "吴岚", files: ["screenshot-0903.jpg"], history: [{ t: "2026-09-03 09:40", operator: "孙悦", action: "电商认领", detail: "认领到独立站三组；业务员 郑浩；业务经理 周宁；附件 screenshot-0903.jpg" }, { t: "2026-09-03 11:12", operator: "李晨", action: "修改", detail: "独立站三组 → 独立站四组；业务员 郑浩 → 孙悦；业务经理 周宁 → 吴岚；附件 screenshot-0903.jpg" }] },
-      { id: "23122146011", platform: "Wise", alias: "HQY-Wise-USD-01", entity: "环球易（香港）", amount: "2100.00", ccy: "USD", time: "2026-09-02 14:33:27", claimType: "one", groupKey: "", biz: "履约", sales: "周启明", manager: "履约一组", files: ["履约-客户A.pdf"], history: [{ t: "2026-09-02 15:02", operator: "周启明", action: "一键认领", detail: "履约 · Aboubacar Sankhon" }] },
-      { id: "23122146090", platform: "Wise", alias: "HQY-Wise-EUR-01", entity: "环球易（香港）", amount: "95.00", ccy: "EUR", time: "2026-09-01 20:01:09", claimType: "one", groupKey: "", biz: "履约", sales: "林晓荷", manager: "履约二组", files: ["履约-凭证.png"], history: [{ t: "2026-09-01 20:18", operator: "林晓荷", action: "一键认领", detail: "履约 · Lucas D" }] },
+      { id: "23122146011", platform: "Wise", alias: "HQY-Wise-USD-01", entity: "环球易（香港）", amount: "2100.00", ccy: "USD", time: "2026-09-02 14:33:27", claimType: "one", groupKey: "", biz: "履约", sales: "周启明", manager: "履约一组", files: ["履约-客户A.pdf"], arIds: ["AR-DF-20251208-030", "AR-PF-20251209-022"], history: [{ t: "2026-09-02 15:02", operator: "周启明", action: "一键认领", detail: "履约 · Aboubacar Sankhon" }, { t: "2026-09-12 10:08", operator: "李晨", action: "标记应收单", detail: "新增 AR-DF-20251208-030、AR-PF-20251209-022" }] },
+      { id: "23122146090", platform: "Wise", alias: "HQY-Wise-EUR-01", entity: "环球易（香港）", amount: "95.00", ccy: "EUR", time: "2026-09-01 20:01:09", claimType: "one", groupKey: "", biz: "履约", sales: "林晓荷", manager: "履约二组", files: ["履约-凭证.png"], arIds: [], history: [{ t: "2026-09-01 20:18", operator: "林晓荷", action: "一键认领", detail: "履约 · Lucas D" }] },
       { id: "23122147005", platform: "Wise", alias: "HQY-Wise-USD-02", entity: "环球易（香港）", amount: "9999.99", ccy: "USD", time: "2026-08-30 10:00:00", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
       { id: "AW88219001", platform: "Airwallex", alias: "HQY-AWX-USD", entity: "环球易（新加坡）", amount: "1500.00", ccy: "USD", time: "2026-09-06 19:20:11", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
       { id: "AW88219078", platform: "Airwallex", alias: "HQY-AWX-USD", entity: "环球易（新加坡）", amount: "320.40", ccy: "USD", time: "2026-09-05 13:44:02", claimType: "ecom", groupKey: "g2", biz: "独立站二组", sales: "王敏", manager: "赵琦", files: ["awx-in.png"], history: [{ t: "2026-09-05 14:01", operator: "王敏", action: "电商认领", detail: "认领到独立站二组；业务员 王敏；业务经理 赵琦；附件 awx-in.png" }] },
       { id: "AW88219120", platform: "Airwallex", alias: "HQY-AWX-GBP", entity: "环球易（新加坡）", amount: "640.00", ccy: "GBP", time: "2026-09-04 07:55:30", claimType: "one", groupKey: "", biz: "履约", sales: "周启明", manager: "履约一组", files: ["履约-invoice.pdf"], history: [{ t: "2026-09-04 08:12", operator: "周启明", action: "一键认领", detail: "履约 · agency.setup2" }] },
       { id: "PN-20260906-01", platform: "Payoneer", alias: "HQY-PO-USD", entity: "环球易（香港）", amount: "88.00", ccy: "USD", time: "2026-09-06 12:08:00", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
       { id: "PN-20260904-17", platform: "Payoneer", alias: "HQY-PO-USD", entity: "环球易（香港）", amount: "2450.00", ccy: "USD", time: "2026-09-04 22:19:41", claimType: "ecom", groupKey: "g1", biz: "独立站一组", sales: "陈思远", manager: "刘洋", files: ["payoneer.jpg", "备注说明.pdf"], history: [{ t: "2026-09-05 09:00", operator: "陈思远", action: "电商认领", detail: "认领到独立站一组；业务员 陈思远；业务经理 刘洋；附件 payoneer.jpg、备注说明.pdf" }] },
-      { id: "PN-20260902-03", platform: "Payoneer", alias: "HQY-PO-USD", entity: "环球易（香港）", amount: "670.00", ccy: "USD", time: "2026-09-02 03:12:08", claimType: "one", groupKey: "", biz: "拒付", sales: "韩亦辰", manager: "风控一组", files: ["拒付-材料.pdf"], history: [{ t: "2026-09-02 10:22", operator: "韩亦辰", action: "一键认领", detail: "拒付 · 客户 C" }] },
+      { id: "PN-20260902-03", platform: "Payoneer", alias: "HQY-PO-USD", entity: "环球易（香港）", amount: "670.00", ccy: "USD", time: "2026-09-02 03:12:08", claimType: "one", groupKey: "", biz: "拒付", sales: "韩亦辰", manager: "风控一组", files: ["拒付-材料.pdf"], arIds: ["AR-DF-20251207-028"], history: [{ t: "2026-09-02 10:22", operator: "韩亦辰", action: "一键认领", detail: "拒付 · 客户 C" }, { t: "2026-09-13 11:06", operator: "李晨", action: "标记应收单", detail: "新增 AR-DF-20251207-028" }] },
       { id: "WF778120", platform: "Worldfirst", alias: "HQY-WF-USD", entity: "环球易（香港）", amount: "5000.00", ccy: "USD", time: "2026-09-06 08:00:00", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
       { id: "WF778188", platform: "Worldfirst", alias: "HQY-WF-USD", entity: "环球易（香港）", amount: "1320.15", ccy: "USD", time: "2026-09-03 19:27:33", claimType: "ecom", groupKey: "g4", biz: "独立站四组", sales: "孙悦", manager: "吴岚", files: ["wf-credit.png"], history: [{ t: "2026-09-03 20:05", operator: "孙悦", action: "电商认领", detail: "认领到独立站四组；业务员 孙悦；业务经理 吴岚；附件 wf-credit.png" }] },
       { id: "PP-0911-002", platform: "PingPong", alias: "HQY-PP-USD", entity: "环球易（深圳）", amount: "210.00", ccy: "USD", time: "2026-09-06 15:45:19", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
@@ -737,6 +810,7 @@
     let claimingId = null;
     let ecomMode = "claim";
     let ecomFiles = [];
+    let previewUrl = null;
 
     function nowText() {
       const d = new Date();
@@ -784,6 +858,7 @@
       document.getElementById("filter-biz").value = "";
       document.getElementById("filter-sales").value = "";
       document.getElementById("filter-manager").value = "";
+      document.getElementById("filter-ar").value = "all";
       renderTable();
     }
 
@@ -799,6 +874,7 @@
       { key: "biz", label: "认领业务" },
       { key: "manager", label: "业务经理" },
       { key: "sales", label: "业务员" },
+      { key: "arMarked", label: "应收单标记" },
     ];
 
     function dash(v) { return v ? v : '<span class="dash">-</span>'; }
@@ -814,12 +890,15 @@
       const biz = document.getElementById("filter-biz").value;
       const sales = document.getElementById("filter-sales").value.trim();
       const manager = document.getElementById("filter-manager").value.trim();
+      const ar = document.getElementById("filter-ar").value;
       return rows.filter((r) => {
         if (r.platform !== currentChannel) return false;
         if (type !== "all" && r.claimType !== type) return false;
         if (biz && r.biz !== biz) return false;
         if (sales && !r.sales.includes(sales)) return false;
         if (manager && !r.manager.includes(manager)) return false;
+        if (ar === "yes" && !hasAr(r)) return false;
+        if (ar === "no" && hasAr(r)) return false;
         return true;
       });
     }
@@ -859,7 +938,7 @@
       const list = getFilteredRows();
       const header = selected.map((f) => csvCell(f.label)).join(",");
       const lines = list.map((r) => selected.map((f) => {
-        const v = f.key === "claimType" ? typeLabel(r.claimType) : (r[f.key] || "");
+        const v = f.key === "claimType" ? typeLabel(r.claimType) : f.key === "arMarked" ? (hasAr(r) ? "是" : "否") : (r[f.key] || "");
         return csvCell(v);
       }).join(","));
       const blob = new Blob(["\ufeff" + [header, ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
@@ -877,13 +956,41 @@
       return '<span class="tag tag-gray">未认领</span>';
     }
 
+    function hasAr(row) {
+      return !!(row.arIds && row.arIds.length);
+    }
+
+    function arLabel(row) {
+      return hasAr(row) ? "修改应收单" : "标记应收单";
+    }
+
+    function arTag(row) {
+      if (!hasAr(row)) return '<span class="tag tag-gray">否</span>';
+      return `<span class="tag tag-blue" title="${row.arIds.join("、")}">是</span>`;
+    }
+
     function ops(row) {
       const log = `<button class="btn-link slot-4" onclick="openLog('${row.id}')">操作日志</button>`;
+      const mark = `<button class="btn-link" onclick="openMark('${row.id}')">${arLabel(row)}</button>`;
       if (row.claimType === "ecom") {
-        return `<button class="btn-link slot-4" onclick="openEcom('${row.id}','modify')">修改认领</button>${log}`;
+        return `<button class="btn-link slot-4 scope-ecom" onclick="openEcom('${row.id}','modify')">修改认领</button>${log}`;
       }
-      if (row.claimType === "one") return log;
-      return `<button class="btn-link" onclick="openOne('${row.id}')">一键认领</button><button class="btn-link" title="电商子业务认领" onclick="openEcom('${row.id}','claim')">电商认领</button>${log}`;
+      if (row.claimType === "one") return `${mark}${log}`;
+      return `<button class="btn-link" onclick="openOne('${row.id}')">一键认领</button><button class="btn-link scope-ecom" title="电商子业务认领" onclick="openEcom('${row.id}','claim')">电商认领</button>${log}`;
+    }
+
+    function openMark(id) {
+      const row = rows.find((r) => r.id === id);
+      if (!row || row.claimType !== "one") return;
+      const ids = (row.arIds && row.arIds.length) ? row.arIds.join("、") : "尚未标记";
+      document.getElementById("ar-title").textContent = arLabel(row);
+      document.getElementById("ar-meta").textContent = `${row.platform}　${row.id}　已关联：${ids}`;
+      document.getElementById("modal-ar").classList.add("show");
+    }
+
+    function setScopeDash(on) {
+      document.body.classList.toggle("show-scope", on);
+      sessionStorage.setItem("ecom-scope-dash", on ? "1" : "0");
     }
 
     function setChannel(name, btn) {
@@ -908,6 +1015,7 @@
           <td>${dash(r.biz)}</td>
           <td>${dash(r.manager)}</td>
           <td>${dash(r.sales)}</td>
+          <td>${arTag(r)}</td>
           <td>${ops(r)}</td>
         </tr>
       `).join("");
@@ -1009,7 +1117,16 @@
       renderTable();
     }
 
+    function closePreview() {
+      document.getElementById("modal-preview").classList.remove("show");
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        previewUrl = null;
+      }
+    }
+
     function closeAll() {
+      closePreview();
       document.querySelectorAll(".overlay").forEach((el) => el.classList.remove("show"));
     }
 
@@ -1082,14 +1199,57 @@
       document.getElementById("drawer-view").classList.add("show");
     }
 
+    (function initScopeDash() {
+      const saved = sessionStorage.getItem("ecom-scope-dash");
+      const on = saved === null ? true : saved === "1";
+      document.getElementById("scope-dash").checked = on;
+      setScopeDash(on);
+    })();
     renderTable();
     renderMaster();
     bindEcomUpload();
 
     function renderEcomFiles() {
       document.getElementById("ecom-file-list").innerHTML = ecomFiles.map((f, i) => `
-        <div class="file-item"><span>${f.name}</span><button type="button" onclick="removeEcomFile(${i})">删除</button></div>
+        <div class="file-item">
+          <span>${f.name}</span>
+          <span class="file-acts">
+            <button type="button" class="btn-link" onclick="viewEcomFile(${i})">查看</button>
+            <button type="button" onclick="removeEcomFile(${i})">删除</button>
+          </span>
+        </div>
       `).join("");
+    }
+
+    function isPdfFile(file) {
+      return file.type === "application/pdf" || /\.pdf$/i.test(file.name || "");
+    }
+
+    function isImageFile(file) {
+      return (file.type && file.type.indexOf("image/") === 0) || /\.(png|jpe?g|gif|webp)$/i.test(file.name || "");
+    }
+
+    function viewEcomFile(i) {
+      const file = ecomFiles[i];
+      if (!file) return;
+      document.getElementById("preview-title").textContent = file.name;
+      const body = document.getElementById("preview-body");
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        previewUrl = null;
+      }
+      if (typeof Blob !== "undefined" && file instanceof Blob && isImageFile(file)) {
+        previewUrl = URL.createObjectURL(file);
+        body.innerHTML = `<img class="preview-img" src="${previewUrl}" alt="" />`;
+      } else if (typeof Blob !== "undefined" && file instanceof Blob && isPdfFile(file)) {
+        previewUrl = URL.createObjectURL(file);
+        body.innerHTML = `<iframe class="preview-frame" src="${previewUrl}"></iframe>`;
+      } else if (isPdfFile(file)) {
+        body.innerHTML = `<div class="preview-mock"><h3>${file.name}</h3><p>PDF 凭证预览。流水认领附件，页数 1，可用于核对认领组与打款信息。</p></div>`;
+      } else {
+        body.innerHTML = `<div class="preview-mock"><h3>${file.name}</h3><p>图片凭证预览。流水认领附件，可用于核对认领组与打款信息。</p></div>`;
+      }
+      document.getElementById("modal-preview").classList.add("show");
     }
 
     function removeEcomFile(i) {
