@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
-  <title>收款明细 · 电商子业务认领 v1.4</title>
+  <title>收款明细 · 电商子业务认领 v1.5</title>
   <style>
     :root {
       --primary: #1677ff;
@@ -365,7 +365,7 @@
 <body class="show-scope">
   <div class="proto-bar">
     <span>后台界面演示</span>
-    <span>v1.4 · 收款明细（无 DTC 菜单）</span>
+    <span>v1.5 · 收款明细（无 DTC 菜单）</span>
     <button class="active" data-screen="receipt" onclick="showScreen('receipt')">收款明细</button>
     <button data-screen="master" onclick="showScreen('master')">电商子业务档案</button>
     <button data-screen="caliber" onclick="showScreen('caliber')">字段口径草案</button>
@@ -452,6 +452,14 @@
         <button class="btn" onclick="toggleMore()">展开</button>
       </div>
       <div class="filters expanded hidden" id="more-filters">
+        <div class="field scope-ecom-box">
+          <label>流水类型</label>
+          <select class="ctrl" id="filter-flow">
+            <option value="all">全部</option>
+            <option value="merchant">商户充值</option>
+            <option value="ecom">电商公司收款</option>
+          </select>
+        </div>
         <div class="field">
           <label>认领业务</label>
           <select class="ctrl" id="filter-biz">
@@ -513,6 +521,7 @@
               <th>交易时间（UTC+8）</th>
               <th>币种</th>
               <th>金额</th>
+              <th class="scope-ecom">流水类型</th>
               <th class="scope-ecom">认领类型</th>
               <th>认领业务</th>
               <th>业务经理</th>
@@ -589,7 +598,7 @@
             </tbody>
           </table>
         </div>
-        <p class="sub" style="margin-top:16px">演示弹窗当前按方案 A 运行。一键认领仍在本页完成，写入客户口径三字段；电商认领按档案写独立站一组到四组。</p>
+        <p class="sub" style="margin-top:16px">演示弹窗当前按方案 A 运行。商户充值流水走一键认领，写客户口径三字段；电商公司收款流水走电商认领，按档案写独立站一组到四组。两种入口不会同时出现。</p>
       </div>
     </div>
   </div>
@@ -665,7 +674,7 @@
           </div>
         </div>
         <div id="ecom-claim-body">
-          <div class="hint" id="ecom-hint">仅归属到电商子业务，不会充值到客户资金账户，一笔流水只能认领一次。</div>
+          <div class="hint" id="ecom-hint">电商公司收款流水仅归属到电商子业务，不会充值到客户资金账户。</div>
           <div class="form-row one">
             <div class="field">
               <label class="req">电商子业务</label>
@@ -805,6 +814,16 @@
       { id: "HSBC-SWIFT-0906", platform: "HSBC USD (Swift)", alias: "HQY-HSBC-USD", entity: "环球易（香港）", amount: "430.00", ccy: "USD", time: "2026-09-06 04:02:51", claimType: "none", groupKey: "", biz: "", sales: "", manager: "", files: [], history: [] },
     ];
 
+    const ECOM_UNCLAIMED = new Set([
+      "23122143432", "23122144001", "PN-20260906-01", "PP-0911-002",
+      "PYPL-20260906-01", "OP-23122143432",
+    ]);
+    rows.forEach((r) => {
+      if (r.claimType === "ecom") r.flowType = "ecom";
+      else if (r.claimType === "one") r.flowType = "merchant";
+      else r.flowType = ECOM_UNCLAIMED.has(r.id) ? "ecom" : "merchant";
+    });
+
     let currentChannel = "Wise";
 
     let claimingId = null;
@@ -855,6 +874,7 @@
 
     function resetFilters() {
       document.getElementById("filter-type").value = "all";
+      document.getElementById("filter-flow").value = "all";
       document.getElementById("filter-biz").value = "";
       document.getElementById("filter-sales").value = "";
       document.getElementById("filter-manager").value = "";
@@ -870,6 +890,7 @@
       { key: "time", label: "交易时间（UTC+8）" },
       { key: "ccy", label: "币种" },
       { key: "amount", label: "金额" },
+      { key: "flowType", label: "流水类型", added: true },
       { key: "claimType", label: "认领类型", added: true },
       { key: "biz", label: "认领业务" },
       { key: "manager", label: "业务经理" },
@@ -885,14 +906,20 @@
       return "未认领";
     }
 
+    function flowLabel(t) {
+      return t === "ecom" ? "电商公司收款" : "商户充值";
+    }
+
     function getFilteredRows() {
       const type = document.getElementById("filter-type").value;
+      const flow = document.getElementById("filter-flow").value;
       const biz = document.getElementById("filter-biz").value;
       const sales = document.getElementById("filter-sales").value.trim();
       const manager = document.getElementById("filter-manager").value.trim();
       const ar = document.getElementById("filter-ar").value;
       return rows.filter((r) => {
         if (r.platform !== currentChannel) return false;
+        if (flow !== "all" && r.flowType !== flow) return false;
         if (type !== "all" && r.claimType !== type) return false;
         if (biz && r.biz !== biz) return false;
         if (sales && !r.sales.includes(sales)) return false;
@@ -938,7 +965,7 @@
       const list = getFilteredRows();
       const header = selected.map((f) => csvCell(f.label)).join(",");
       const lines = list.map((r) => selected.map((f) => {
-        const v = f.key === "claimType" ? typeLabel(r.claimType) : f.key === "arMarked" ? (hasAr(r) ? "是" : "否") : (r[f.key] || "");
+        const v = f.key === "claimType" ? typeLabel(r.claimType) : f.key === "flowType" ? flowLabel(r.flowType) : f.key === "arMarked" ? (hasAr(r) ? "是" : "否") : (r[f.key] || "");
         return csvCell(v);
       }).join(","));
       const blob = new Blob(["\ufeff" + [header, ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
@@ -954,6 +981,11 @@
       if (t === "ecom") return '<span class="tag tag-blue">电商认领</span>';
       if (t === "one") return '<span class="tag tag-green">一键认领</span>';
       return '<span class="tag tag-gray">未认领</span>';
+    }
+
+    function flowTag(t) {
+      if (t === "ecom") return '<span class="tag tag-blue">电商公司收款</span>';
+      return '<span class="tag tag-gray">商户充值</span>';
     }
 
     function hasAr(row) {
@@ -976,7 +1008,10 @@
         return `<button class="btn-link slot-4 scope-ecom" onclick="openEcom('${row.id}','modify')">修改认领</button>${log}`;
       }
       if (row.claimType === "one") return `${mark}${log}`;
-      return `<button class="btn-link" onclick="openOne('${row.id}')">一键认领</button><button class="btn-link scope-ecom" title="电商子业务认领" onclick="openEcom('${row.id}','claim')">电商认领</button>${log}`;
+      if (row.flowType === "ecom") {
+        return `<button class="btn-link scope-ecom" title="电商子业务认领" onclick="openEcom('${row.id}','claim')">电商认领</button>${log}`;
+      }
+      return `<button class="btn-link" onclick="openOne('${row.id}')">一键认领</button>${log}`;
     }
 
     function openMark(id) {
@@ -1011,6 +1046,7 @@
           <td>${r.time}</td>
           <td>${r.ccy || "USD"}</td>
           <td class="amount">${r.amount}</td>
+          <td>${flowTag(r.flowType)}</td>
           <td>${typeTag(r.claimType)}</td>
           <td>${dash(r.biz)}</td>
           <td>${dash(r.manager)}</td>
@@ -1061,6 +1097,10 @@
       claimingId = id;
       ecomMode = mode || "claim";
       const row = rows.find((r) => r.id === id);
+      if (!row || row.flowType !== "ecom") {
+        alert("商户充值流水请使用一键认领");
+        return;
+      }
       if (ecomMode !== "modify" && row.claimType !== "none") {
         alert("该流水已被认领，一笔流水只能认领一次");
         return;
@@ -1069,7 +1109,7 @@
       document.getElementById("ecom-submit").textContent = ecomMode === "modify" ? "确认修改" : "确认认领";
       document.getElementById("ecom-hint").textContent = ecomMode === "modify"
         ? "更换电商子业务即可。清空认领请点「撤销认领」。"
-        : "仅归属到电商子业务，不会充值到客户资金账户，一笔流水只能认领一次。";
+        : "电商公司收款流水仅归属到电商子业务，不会充值到客户资金账户。";
       document.getElementById("ecom-group").value = ecomMode === "modify" ? row.groupKey : "";
       ecomFiles = ecomMode === "modify" ? (row.files || []).map((name) => ({ name })) : [];
       document.getElementById("ecom-upload-label").className = ecomMode === "modify" ? "" : "req";
@@ -1084,7 +1124,11 @@
 
     function openOne(id) {
       const row = rows.find((r) => r.id === id);
-      if (!row || row.claimType !== "none") {
+      if (!row || row.flowType !== "merchant") {
+        alert("电商公司收款流水请使用电商认领");
+        return;
+      }
+      if (row.claimType !== "none") {
         alert("该流水已被认领，一笔流水只能认领一次");
         return;
       }
@@ -1096,7 +1140,11 @@
 
     function confirmOne() {
       const row = rows.find((r) => r.id === claimingId);
-      if (!row || row.claimType !== "none") {
+      if (!row || row.flowType !== "merchant") {
+        alert("电商公司收款流水请使用电商认领");
+        return;
+      }
+      if (row.claimType !== "none") {
         alert("该流水已被认领，一笔流水只能认领一次");
         return;
       }
@@ -1135,6 +1183,10 @@
       const g = GROUPS[key];
       if (!g) { alert("请选择业务组"); return; }
       const row = rows.find((r) => r.id === claimingId);
+      if (row.flowType !== "ecom") {
+        alert("商户充值流水请使用一键认领");
+        return;
+      }
       if (ecomMode !== "modify" && row.claimType !== "none") {
         alert("该流水已被认领，一笔流水只能认领一次");
         return;
